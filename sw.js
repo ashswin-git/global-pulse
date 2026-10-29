@@ -1,5 +1,5 @@
 // Caches the app shell only. Market/API data is never cached here.
-const V = 'gp-shell-v2', SHELL = ['./', 'index.html', 'world.html', 'style.css', 'markets.css', 'markets.js', 'app.js', 'config.js', 'favicon.svg', 'manifest.webmanifest'];
+const V = 'gp-shell-v3', SHELL = ['./', 'index.html', 'world.html', 'style.css', 'markets.css', 'markets.js', 'app.js', 'world2.js', 'config.js', 'favicon.svg', 'manifest.webmanifest'];
 self.addEventListener('install', e => e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {

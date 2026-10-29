@@ -75,6 +75,27 @@ LIVE / CACHED / ERROR tags with last-updated time, localStorage caching, fetch t
 - Renamed BSE tickers: Zomato → `BSE:ETERNAL`, Tata Motors → `BSE:TMPV`, M&M → `BSE:M_M`, Bajaj Auto → `BSE:BAJAJ_AUTO`.
 - Unknown symbols (not in the verified list) show a notice; widgets themselves cannot be inspected cross-origin.
 
+## 🌍 World Pulse v2 (layers, time, alerts)
+- **Hourly data cron** (`.github/workflows/data.yml` → `scripts/fetch-data.mjs`) writes `data/news.json` (GDELT DOC 2.0 artlist, 7d), `data/points.json` (GDELT DOC `mode=pointdata`), `data/gdacs.json`, `data/quakes.json` (USGS M4.5+ week), `data/eonet.json` (NASA EONET v3), `data/meta.json`. GDELT calls are ≥7s apart. The site reads these first (if <3h old) and only falls back to live API calls, which avoids GDELT 429s. A failed source keeps its previous file and is marked in `meta.json`.
+- **Layers** (checkboxes, saved in URL): conflict news points, conflict heat hexbin, earthquakes, GDACS disasters, EONET hazards, exchanges.
+- **Time slider** (24h / 7d) with ▶ Play (requestAnimationFrame; disabled under reduced motion).
+- **Country briefing**: click any country (world-atlas / Natural Earth) → GDELT headlines, source chips, disasters/quakes, link to its main index on Markets.
+- **Keyword watch** (localStorage) with browser Notification alerts; **near-me** alert using browser geolocation (rounded, stored only locally).
+- **Arcs** from major events (Red GDACS, M6+ quakes, big conflict clusters) to the nearest exchange; off under reduced motion.
+- **Shareable URL**: `layers`, `region`, `t`, `at`, `pov`, `view`.
+- **2D fallback**: Leaflet + markercluster on mobile or without WebGL (toggle 🗺/🌍).
+
+### Inspiration & libraries (credits)
+Ideas only, **no code copied** from these dashboards:
+[koala73/worldmonitor](https://github.com/koala73/worldmonitor) (AGPL-3.0),
+[hipcityreg/situation-monitor](https://github.com/hipcityreg/situation-monitor) (no license),
+[unicodeveloper/globalthreatmap](https://github.com/unicodeveloper/globalthreatmap) (no license),
+[marc-shade/world-intel-mcp](https://github.com/marc-shade/world-intel-mcp) (MIT),
+[kinshukdua/LiveActionMap](https://github.com/kinshukdua/LiveActionMap) (MIT),
+[Hue-Jhan/OSINT-War-Room](https://github.com/Hue-Jhan/OSINT-War-Room) (MIT).
+Evaluated but not used: [kepler.gl](https://github.com/keplergl/kepler.gl) (MIT) and [deck.gl](https://github.com/visgl/deck.gl) (MIT); globe.gl already covers hexbins and arcs without a build step.
+Libraries used via CDN (with SRI): [globe.gl](https://github.com/vasturiano/globe.gl) (MIT), [Leaflet](https://github.com/Leaflet/Leaflet) (BSD-2), [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) (MIT), [topojson-client](https://github.com/topojson/topojson-client) (ISC), [world-atlas](https://github.com/topojson/world-atlas) (ISC; Natural Earth, public domain). Map tiles © OpenStreetMap contributors.
+
 ## 🗺 Roadmap
 - Geo-located conflict events (GDELT GEO / ACLED) instead of the static hotspot list
 - Full exchange holiday calendars

@@ -134,9 +134,19 @@ async function gdelt(url, tagId) {
   }
   throw new Error('gdelt failed');
 }
+// Pre-fetched data (GitHub Actions cron, hourly) first; live API as fallback.
+const DATA_MAX_AGE = 3 * 3600e3;
+async function dataFile(name) {
+  try { const meta = window.__meta || (window.__meta = await (await fetchT('data/meta.json?' + Math.floor(Date.now() / 6e5))).json());
+    const src = meta.sources?.[name]; if (!src?.ok || Date.now() - Date.parse(src.t) > DATA_MAX_AGE) return null;
+    return { data: await (await fetchT(`data/${name}.json?` + Date.parse(src.t))).json(), t: Date.parse(src.t) };
+  } catch { return null; }
+}
 let newsArts = [];
 async function loadNews() {
   const q = encodeURIComponent('(war OR conflict OR airstrike OR ceasefire OR military) sourcelang:english');
+  const pre = await dataFile('news');
+  if (pre?.data.items?.length) { newsArts = pre.data.items; tag('newsTag', 'live', 'GDELT via hourly cron', pre.t); renderNews(); return; }
   try {
     const j = await gdelt(`https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&format=json&maxrecords=50&sort=datedesc&timespan=1d`, 'newsTag');
     newsArts = (j.articles || []).filter(a => safeUrl(a.url));
@@ -159,11 +169,12 @@ function renderNews() {
 }
 async function loadConflictGeo() {
   try {
-    const q = encodeURIComponent('(airstrike OR shelling OR clashes OR "armed conflict")');
-    const j = await gdelt(`https://api.gdeltproject.org/api/v2/geo/geo?query=${q}&format=GeoJSON&timespan=1d&maxpoints=40`);
+    const pre = await dataFile('points'); let j = pre?.data;
+    if (!j) { const q = encodeURIComponent('(airstrike OR shelling OR clashes OR "armed conflict")');
+      j = await gdelt(`https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=pointdata&format=geojson&timespan=1d`); }
     const f = (j.features || []).filter(x => x.geometry?.type === 'Point');
     if (!f.length) throw 0;
-    conflictPts = f.map(x => { const [lng, lat] = x.geometry.coordinates; const name = String(x.properties?.name || 'Conflict report'); return { lat, lng, label: name + ' (GDELT, 24h)', q: name.split(',')[0], region: regionOf(lat, lng), kind: 'war', count: x.properties?.count }; });
+    conflictPts = f.map(x => { const [lng, lat] = x.geometry.coordinates; const name = String(x.properties?.name || 'Conflict report'); return { lat, lng, label: name + ' (GDELT)', t: Date.parse(x.properties?.date) || null, q: name.split(',')[0], region: regionOf(lat, lng), kind: 'war', count: x.properties?.count }; });
     $('legWar').textContent = 'Conflict (live GDELT)';
   } catch { conflictPts = HOTSPOTS; }
   updateGlobe();
@@ -183,7 +194,8 @@ function renderDisasters(f) {
 let disasterRaw = [];
 async function loadDisasters() {
   try {
-    const j = await (await fetchT('https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=EQ;TC;FL;VO;WF;DR&alertlevel=Orange;Red')).json();
+    const pre = await dataFile('gdacs');
+    const j = pre?.data || await (await fetchT('https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=EQ;TC;FL;VO;WF;DR&alertlevel=Orange;Red')).json();
     disasterRaw = (j.features || []).sort((a, b) => (b.properties.fromdate || '').localeCompare(a.properties.fromdate || ''));
     cache.set('gdacs', disasterRaw); tag('gdacsTag', 'live', 'GDACS', Date.now());
   } catch {
@@ -193,7 +205,7 @@ async function loadDisasters() {
   }
   if (!disasterRaw.length && $('gdacsTag').classList.contains('error')) $('disasters').innerHTML = '<p class="empty">Could not reach GDACS. <button onclick="loadDisasters()">Retry now</button></p>';
   else renderDisasters(disasterRaw);
-  disasterPts = disasterRaw.slice(0, 40).filter(x => x.geometry?.type === 'Point').map(x => ({ lat: x.geometry.coordinates[1], lng: x.geometry.coordinates[0], label: x.properties.name, q: x.properties.country, region: regionOf(x.geometry.coordinates[1], x.geometry.coordinates[0]), kind: 'dis', p: x.properties }));
+  disasterPts = disasterRaw.slice(0, 40).filter(x => x.geometry?.type === 'Point').map(x => ({ lat: x.geometry.coordinates[1], lng: x.geometry.coordinates[0], label: x.properties.name, q: x.properties.country, region: regionOf(x.geometry.coordinates[1], x.geometry.coordinates[0]), kind: 'dis', p: x.properties, t: Date.parse(x.properties.fromdate) || null }));
   updateGlobe();
 }
 
@@ -249,6 +261,7 @@ function setFocus(d) {
   let body = '';
   if (d.kind === 'exchange') { const s = status(d); body = `<p>${esc(d.idx)}</p><p>Status: <b>${ST_LABEL[s]}</b> (approx.)</p><p>Hours: ${d.o}–${d.c} ${esc(d.tz)}${d.lunch ? ` · lunch ${d.lunch[0]}–${d.lunch[1]}` : ''}</p>`; }
   else if (d.kind === 'dis') { const p = d.p || {}; body = `<p>${esc(p.description || '')}</p><p>Alert: <b>${esc(p.alertlevel)}</b> · ${esc(p.country || '')}</p><p>Since ${esc((p.fromdate || '').slice(0, 10))}</p>`; }
+  else if (d.kind === 'quake' || d.kind === 'eonet') body = `<p>${d.kind === 'quake' ? 'Earthquake (USGS)' : 'Natural hazard (NASA EONET)'}${d.t ? ' · ' + esc(new Date(d.t).toLocaleString()) : ''}</p>${safeUrl(d.url) ? `<p><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">Source details →</a></p>` : ''}`;
   else body = `<p>${d.ref ? 'Reference hotspot (static list, not live).' : 'Location mentioned in conflict reporting over the last 24h (GDELT).'}</p>${d.count ? `<p>Mentions: ${esc(d.count)}</p>` : ''}`;
   panel.innerHTML = `<button class="close" onclick="setFocus(null)" aria-label="Close details">✕</button><h3>${esc(d.label)}</h3>${body}<p class="mut">News below is filtered to this marker.</p>`;
   panel.hidden = false;
@@ -268,9 +281,11 @@ $('curBtn').textContent = CUR === 'usd' ? '₹ Show INR' : '$ Show USD';
 $('region').onchange = e => { REGION = e.target.value; loadStocks(true); renderDisasters(disasterRaw); updateGlobe(); };
 if (reduceMotion) { rotating = false; $('rotateBtn').textContent = '▶ Rotate'; }
 
-// ---- Boot ----
+// ---- Boot (after world2.js has loaded) ----
+addEventListener('DOMContentLoaded', () => {
 tick(); setInterval(tick, 1000);
 initGlobe(); loadStocks(true); loadCrypto(); loadDisasters();
 loadNews().then(loadConflictGeo);
 setInterval(loadCrypto, 60000); setInterval(() => { loadStocks(); updateGlobe(); }, 60000);
 setInterval(() => loadNews().then(loadConflictGeo), 10 * 60000); setInterval(loadDisasters, 10 * 60000);
+});

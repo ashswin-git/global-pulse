@@ -12,6 +12,9 @@
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Global Pulse 🌍">
 <meta name="twitter:description" content="Stock exchanges, crypto, conflicts and disasters on one animated 3D globe.">
 <meta name="twitter:image" content="https://ashswin-git.github.io/global-pulse/docs/screenshot.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous">
 <link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="markets.css">
 </head><body>
 <a class="skip" href="#main">Skip to content</a>
@@ -33,12 +36,21 @@
         <span role="listitem"><i class="dot" style="background:#22d3ee"></i>Exchange open</span>
         <span role="listitem"><i class="dot hollow"></i>Closed</span>
         <span role="listitem"><i class="tri"></i><span id="legWar">Conflict (reference)</span></span>
-        <span role="listitem"><i class="sq"></i>Disaster (GDACS)</span>
-        <button id="rotateBtn" aria-pressed="false">⏸ Pause rotation</button>
+        <span role="listitem"><i class="sq"></i>Disaster (GDACS)</span><span role="listitem"><i class="dot" style="background:#a78bfa"></i>Quake</span><span role="listitem"><i class="dot" style="background:#34d399"></i>Hazard</span>
+        <button id="rotateBtn" aria-pressed="false">⏸ Pause rotation</button> <button id="viewBtn">🗺 2D map</button>
       </div></div>
+    <fieldset class="w2bar"><legend class="sr-only">Map layers</legend><div id="layers" class="layers"></div></fieldset>
+    <div class="w2bar time"><label for="tWin">Time</label> <select id="tWin"><option value="24h">Last 24h</option><option value="7d">Last 7 days</option></select>
+      <input type="range" id="tSlider" min="0" max="24" step="0.25" aria-label="Show events up to this time"> <button id="playBtn">▶ Play</button> <span id="w2count" class="mut" aria-live="polite"></span></div>
     <div class="globe-wrap"><div id="globe" role="img" aria-label="3D globe with markers for stock exchanges, conflicts and disasters. Click a marker for details."></div>
       <aside id="details" class="glass details" hidden aria-live="polite"></aside></div>
   </section>
+  <section class="glass" aria-labelledby="h-al"><div class="card-h"><h2 id="h-al"><span aria-hidden="true">🔔</span> Watch &amp; alerts</h2><button id="notifBtn">🔕 Enable browser alerts</button></div>
+    <form id="kwForm" class="cmp"><label for="kwIn">Keyword watch</label> <input id="kwIn" placeholder="e.g. Taiwan, oil, Kashmir" maxlength="40"> <button>Add</button></form>
+    <div id="kwList" class="chips"></div><div id="kwHits" class="news"></div>
+    <p class="note">Keywords are checked against loaded GDELT headlines while this tab is open. Stored only in this browser.</p>
+    <div class="cmp"><button id="nearBtn" type="button">📍 Alert me about events near me</button> <label>within <select id="nearKm"><option>250</option><option selected>500</option><option>1000</option></select> km</label></div>
+    <div id="nearOut" class="news"></div><p class="note">Location is rounded to ~1 km and kept only in this browser (localStorage); never sent anywhere.</p></section>
   <section class="glass" aria-labelledby="h-st"><div class="card-h"><h2 id="h-st"><span aria-hidden="true">📈</span> Stock Markets</h2><span class="tag" id="stockTag">DEMO</span></div>
     <p class="note">Index prices are DEMO: no free, keyless index-price API allows browser access (Stooq blocks it). Add a free Finnhub key in config.js for live ETF quotes. Open/closed status is computed from real exchange hours.</p>
     <div class="grid" id="stocks"></div></section>
@@ -49,8 +61,12 @@
   <section class="glass" aria-labelledby="h-ds"><div class="card-h"><h2 id="h-ds"><span aria-hidden="true">🚨</span> Disasters & Crises</h2><span class="tag" id="gdacsTag">…</span></div>
     <div class="news" id="disasters"></div></section>
 </main>
-<footer>Data: CoinGecko / CoinPaprika · GDELT · GDACS · exchange hours computed locally (approx.). Demo data is always labelled. Not financial advice.</footer>
+<footer>Data: CoinGecko / CoinPaprika · GDELT · GDACS · USGS · NASA EONET · Natural Earth via world-atlas · map tiles © OpenStreetMap contributors · exchange hours computed locally (approx.). Demo data is always labelled. Not financial advice.</footer>
 <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.33.0/dist/globe.gl.min.js" integrity="sha384-RdB5K07KIDe+WTwJoZTo3f5rEQoDav49ZzIkIHNgojP7V/oBX4Ovo8BhYKwi8rp1" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="world2.js"></script>
 </body></html>

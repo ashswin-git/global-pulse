@@ -54,3 +54,5 @@ select option{background:#0b1220}
 section{min-width:0;overflow:hidden}.card-h>*{min-width:0}.tag{white-space:normal}
 @media(max-width:800px){main{padding:8px;gap:10px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.legend{font-size:.7rem}}
 .ticker:focus-within .ticker-track{animation-play-state:paused}
+.w2bar{border:0;margin:6px 0;padding:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}.layers{display:flex;flex-wrap:wrap;gap:6px 14px}.layers label{display:flex;align-items:center;gap:5px;cursor:pointer}.w2bar input[type=range]{flex:1;min-width:140px}.chip{display:inline-block;padding:3px 8px;border:1px solid #2a3550;border-radius:999px;margin:2px;font-size:12px}.chip button{background:none;border:0;color:inherit;cursor:pointer}.leaflet-container{background:#05070f;height:100%;min-height:340px}
+.dark-tiles{filter:invert(1) hue-rotate(180deg) brightness(.75) contrast(.9)}

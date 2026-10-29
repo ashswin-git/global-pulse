@@ -1,0 +1,30 @@
+{
+ "updated": "2026-10-29T16:26:50.068Z",
+ "sources": {
+  "news": {
+   "ok": false,
+   "error": "HTTP 429 Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic us",
+   "t": null
+  },
+  "points": {
+   "ok": false,
+   "error": "HTTP 429 Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic us",
+   "t": null
+  },
+  "gdacs": {
+   "ok": true,
+   "n": 85,
+   "t": "2026-10-29T16:26:50.068Z"
+  },
+  "quakes": {
+   "ok": true,
+   "n": 192,
+   "t": "2026-10-29T16:26:50.068Z"
+  },
+  "eonet": {
+   "ok": true,
+   "n": 11,
+   "t": "2026-10-29T16:26:50.068Z"
+  }
+ }
+}
