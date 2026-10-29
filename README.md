@@ -18,19 +18,21 @@
 ## 📡 Data sources
 | Section | Source | Status |
 |---|---|---|
-| Crypto | [CoinGecko](https://www.coingecko.com/en/api) `/coins/markets` | ✅ Live, keyless |
+| Crypto | [CoinGecko](https://www.coingecko.com/en/api), fallback [CoinPaprika](https://api.coinpaprika.com) | ✅ Live, keyless, USD/INR, cached in localStorage |
 | Disasters | [GDACS](https://www.gdacs.org) events API | ✅ Live, keyless |
 | Conflict news | [GDELT DOC 2.0](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/) | ✅ Live, keyless (rate-limited to ~1 req / 5 s; falls back to a labelled static hotspot list) |
 | Exchange open/closed | Computed in-browser from official trading hours | ✅ Real |
 | Index prices | Built-in **DEMO** numbers (clearly labelled) | ⚠️ Demo unless you add a key |
-| Conflict hotspots on globe | Static reference list | ℹ️ Labelled "reference" |
+| Conflict points on globe | GDELT GEO 2.0 (24h), fallback static reference list | ✅ Live when GDELT responds |
 
 ### Optional live stock prices
 Get a free key at [finnhub.io](https://finnhub.io) and put it in `config.js`:
 ```js
 window.GP_CONFIG = { FINNHUB_KEY: "your_key_here" };
 ```
-With a key, tiles switch to **LIVE** quotes for country ETF proxies (SPY, QQQ, EWU, EWG, INDA, EWJ…). Note: a key in a static site is visible to visitors — use a free-tier key only.
+With a key, tiles switch to **LIVE** quotes for country ETF proxies (SPY, QQQ, EWU, EWG, INDA, EWJ…). ⚠️ A key in a static site is visible to every visitor. **Use a free-tier key only — never a paid Finnhub key.**
+
+Why demo? Keyless index sources were tested: Stooq's CSV endpoint does not allow browser (CORS) access, so live index prices need a key.
 
 ## 🛠 Stack
 Plain HTML + CSS + vanilla JS · [globe.gl](https://github.com/vasturiano/globe.gl) via CDN · GitHub Pages.
@@ -42,10 +44,12 @@ cd global-pulse
 python3 -m http.server 8000   # open http://localhost:8000
 ```
 
-## 🗺 Roadmap (Phase 2)
+## ✅ Phase 2 (done)
+LIVE / CACHED / ERROR tags with last-updated time, localStorage caching, fetch timeouts and retries, GDELT backoff, CoinPaprika fallback, INR toggle, globe click → details panel + news filter, region filter, lunch breaks and some holidays, WebGL/CDN fallback, accessibility (skip link, focus styles, legend shapes, aria), local/UTC clock, OG/Twitter tags and favicon, reduced-motion support.
+
+## 🗺 Roadmap
 - Geo-located conflict events (GDELT GEO / ACLED) instead of the static hotspot list
-- Exchange holiday calendars and lunch breaks (HKEX, SSE, TSE)
-- Click a globe marker → focus panel with details
+- Full exchange holiday calendars
 - Watchlist saved in localStorage, search, and alerts
 - Fear & Greed / volatility widgets, PWA install
 
