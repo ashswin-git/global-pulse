@@ -1,0 +1,25 @@
+.tabs{display:flex;gap:6px;margin:12px 14px 0;padding:6px;width:max-content;max-width:calc(100% - 28px)}
+.tabs a{color:var(--tx);text-decoration:none;padding:7px 14px;border-radius:12px;font-weight:600;font-size:.9rem;transition:background .2s}
+.tabs a[aria-current]{background:linear-gradient(135deg,#22d3ee55,#7c3aed55)}.tabs a:hover{background:#ffffff14}
+.tape{margin:10px 14px 0;min-height:46px;overflow:hidden}
+.mk{grid-template-columns:repeat(2,minmax(0,1fr))}
+.search-card,.head-card,.chart-card,.wide{grid-column:1/-1}
+.search-card{position:relative;z-index:10;overflow:visible}
+.mut{color:var(--mut);font-weight:400;letter-spacing:0}
+#searchForm{display:flex;gap:8px;margin:14px 0 10px;position:relative}
+#q{flex:1;min-width:0;font:inherit;font-size:1.05rem;padding:13px 16px;border-radius:14px;border:1px solid var(--bd);background:#0b1220cc;color:var(--tx);transition:border-color .2s,box-shadow .2s}
+#q:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 4px #22d3ee22}
+#searchForm>button{padding:0 20px;font-size:.95rem;background:linear-gradient(135deg,#0891b2,#7c3aed);border:0;border-radius:14px;font-weight:700}
+.sugg{position:absolute;top:100%;left:0;right:0;margin:6px 0 0;padding:6px;list-style:none;max-height:340px;overflow:auto;background:#0b1220f2}
+.sugg li{padding:9px 12px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;gap:10px}
+.sugg li[aria-selected=true],.sugg li:hover{background:#22d3ee22}.sugg small{color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips button{border-radius:99px;padding:5px 12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row .w{flex:1;min-width:260px}
+.star{font-size:.9rem;padding:8px 14px}.star[aria-pressed=true]{color:#fbbf24;border-color:#fbbf24}
+.tf{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}.tf button.on{background:#22d3ee33;border-color:var(--ac)}
+.ctype{margin-left:auto;font-size:.8rem;color:var(--mut)}
+.w{min-height:120px;border-radius:12px;overflow:hidden;animation:rise .5s ease both}.w.chart{height:540px}.w.tall{height:460px}
+.watch{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.watch span{display:inline-flex;gap:2px}
+.watch button.rm{padding:4px 7px;color:var(--mut)}
+footer a{color:var(--ac)}
+@media(max-width:800px){.mk{grid-template-columns:1fr}.w.chart{height:420px}.w.tall{height:420px}.tabs{margin:8px 8px 0}.tape{margin:8px 8px 0}}

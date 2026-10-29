@@ -1,55 +1,51 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Global Pulse — Markets, Crypto & Crisis Dashboard</title>
-<meta name="description" content="Animated world dashboard: stock exchanges, crypto, conflicts and disasters on a 3D globe.">
-<meta name="theme-color" content="#05070f">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<meta property="og:type" content="website"><meta property="og:title" content="Global Pulse 🌍">
-<meta property="og:description" content="Stock exchanges, crypto, conflicts and disasters on one animated 3D globe.">
-<meta property="og:url" content="https://ashswin-git.github.io/global-pulse/">
-<meta property="og:image" content="https://ashswin-git.github.io/global-pulse/docs/screenshot.png">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Global Pulse 🌍">
-<meta name="twitter:description" content="Stock exchanges, crypto, conflicts and disasters on one animated 3D globe.">
-<meta name="twitter:image" content="https://ashswin-git.github.io/global-pulse/docs/screenshot.png">
-<link rel="stylesheet" href="style.css">
+<title>Global Pulse — Stock search, charts, news & movers</title>
+<meta name="description" content="Search any stock, index or crypto: interactive charts, key stats, company profile, news, watchlist and top movers.">
+<meta name="theme-color" content="#05070f"><link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website"><meta property="og:title" content="Global Pulse — Markets">
+<meta property="og:description" content="Search any stock, index or crypto with interactive charts, stats, news and movers.">
+<meta property="og:url" content="https://ashswin-git.github.io/global-pulse/"><meta property="og:image" content="https://ashswin-git.github.io/global-pulse/docs/markets.png">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://ashswin-git.github.io/global-pulse/docs/markets.png">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="markets.css">
 </head><body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="bg-glow" aria-hidden="true"></div>
-<header class="glass top">
-  <div class="brand"><span class="pulse-dot" aria-hidden="true"></span> GLOBAL<b>PULSE</b></div>
-  <div class="controls">
-    <label class="sr-only" for="region">Region</label>
-    <select id="region"><option>All</option><option>Americas</option><option>Europe</option><option>Africa & Middle East</option><option>Asia-Pacific</option></select>
-    <span class="clock" id="clock" aria-live="off">--:--</span><button id="tzBtn">Show UTC</button>
-  </div>
-</header>
-<div class="ticker glass" aria-label="Crypto price ticker"><div class="ticker-track" id="ticker">Loading crypto…</div></div>
-<main id="main" tabindex="-1">
-  <section class="glass globe-card" aria-labelledby="h-globe">
-    <div class="card-h"><h2 id="h-globe"><span aria-hidden="true">🌍</span> World Pulse</h2>
-      <div class="legend" role="list" aria-label="Map legend">
-        <span role="listitem"><i class="dot" style="background:#22d3ee"></i>Exchange open</span>
-        <span role="listitem"><i class="dot hollow"></i>Closed</span>
-        <span role="listitem"><i class="tri"></i><span id="legWar">Conflict (reference)</span></span>
-        <span role="listitem"><i class="sq"></i>Disaster (GDACS)</span>
-        <button id="rotateBtn" aria-pressed="false">⏸ Pause rotation</button>
-      </div></div>
-    <div class="globe-wrap"><div id="globe" role="img" aria-label="3D globe with markers for stock exchanges, conflicts and disasters. Click a marker for details."></div>
-      <aside id="details" class="glass details" hidden aria-live="polite"></aside></div>
+<nav class="tabs glass"><a href="./" aria-current="page">📊 Markets</a><a href="world.html">🌍 World Pulse</a></nav>
+<div class="tape glass" id="tape"></div>
+<main id="main" tabindex="-1" class="mk">
+  <section class="glass search-card">
+    <div class="brand"><span class="pulse-dot" aria-hidden="true"></span> GLOBAL<b>PULSE</b> <span class="mut">Markets</span></div>
+    <form id="searchForm" role="search" autocomplete="off">
+      <label class="sr-only" for="q">Search a stock, index or crypto</label>
+      <input id="q" placeholder="Search: AAPL, Reliance, TCS, Bitcoin, NIFTY, Tesla…" aria-autocomplete="list" aria-controls="sugg">
+      <button type="submit">Search</button>
+      <ul id="sugg" class="sugg glass" role="listbox" hidden></ul>
+    </form>
+    <div class="chips" id="quick"></div>
+    <p class="note">Data: TradingView widgets. US/global stocks are delayed per exchange rules, Indian stocks show via BSE (end-of-day; NSE isn't licensed for free embeds), crypto and forex are real-time. Tip: type any TradingView symbol like <code>NASDAQ:NVDA</code> or <code>BSE:INFY</code>.</p>
   </section>
-  <section class="glass" aria-labelledby="h-st"><div class="card-h"><h2 id="h-st"><span aria-hidden="true">📈</span> Stock Markets</h2><span class="tag" id="stockTag">DEMO</span></div>
-    <p class="note">Index prices are DEMO: no free, keyless index-price API allows browser access (Stooq blocks it). Add a free Finnhub key in config.js for live ETF quotes. Open/closed status is computed from real exchange hours.</p>
-    <div class="grid" id="stocks"></div></section>
-  <section class="glass" aria-labelledby="h-cr"><div class="card-h"><h2 id="h-cr"><span aria-hidden="true">🪙</span> Crypto</h2><span><button id="curBtn">₹ Show INR</button> <span class="tag" id="cryptoTag">…</span></span></div>
-    <div class="grid" id="crypto"></div></section>
-  <section class="glass" aria-labelledby="h-nw"><div class="card-h"><h2 id="h-nw"><span aria-hidden="true">⚔️</span> Conflict & War News</h2><span class="tag" id="newsTag">…</span></div>
-    <div id="newsFilter" class="note"></div><div class="news" id="news"></div></section>
-  <section class="glass" aria-labelledby="h-ds"><div class="card-h"><h2 id="h-ds"><span aria-hidden="true">🚨</span> Disasters & Crises</h2><span class="tag" id="gdacsTag">…</span></div>
-    <div class="news" id="disasters"></div></section>
+
+  <section class="glass head-card"><div class="row"><div id="w-info" class="w"></div>
+    <button id="starBtn" class="star" aria-pressed="false">☆ Add to watchlist</button></div></section>
+
+  <section class="glass chart-card"><div class="tf" role="group" aria-label="Timeframe">
+      <button data-r="1D">1D</button><button data-r="5D">1W</button><button data-r="1M">1M</button><button data-r="12M" class="on">1Y</button><button data-r="60M">5Y</button><button data-r="ALL">All</button>
+      <label class="ctype">Style <select id="style"><option value="1">Candles</option><option value="3">Area</option><option value="2">Line</option></select></label></div>
+    <div id="w-chart" class="w chart"></div></section>
+
+  <section class="glass"><h2>Key stats</h2><div id="w-fund" class="w tall"></div></section>
+  <section class="glass"><h2>Company profile</h2><div id="w-prof" class="w tall"></div></section>
+  <section class="glass"><h2>Technicals</h2><div id="w-ta" class="w tall"></div></section>
+  <section class="glass"><h2>Related news</h2><div id="w-news" class="w tall"></div></section>
+
+  <section class="glass"><h2>⭐ Watchlist</h2><div id="watch" class="watch"></div><div id="w-watch" class="w"></div></section>
+  <section class="glass"><h2>🔥 Top gainers & losers</h2>
+    <div class="tf" role="group" aria-label="Market"><button data-m="america" class="on">US</button><button data-m="india">India</button><button data-m="uk">UK</button><button data-m="japan">Japan</button><button data-m="crypto">Crypto</button></div>
+    <div id="w-movers" class="w tall"></div></section>
+  <section class="glass wide"><h2>🌐 Market overview</h2><div id="w-over" class="w tall"></div></section>
 </main>
-<footer>Data: CoinGecko / CoinPaprika · GDELT · GDACS · exchange hours computed locally (approx.). Demo data is always labelled. Not financial advice.</footer>
-<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.33.0/dist/globe.gl.min.js"></script>
-<script src="config.js"></script>
-<script src="app.js"></script>
+<footer>Market data and charts by <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView</a>. Not financial advice. · <a href="world.html">World Pulse: globe, crypto & disasters →</a></footer>
+<script src="markets.js"></script>
 </body></html>

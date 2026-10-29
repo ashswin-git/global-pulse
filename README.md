@@ -1,10 +1,15 @@
 # 🌍 Global Pulse
 
-**One animated screen for the whole world: stock exchanges, crypto, conflicts and disasters on a 3D globe.**
+**A stock search platform plus a live world dashboard.**
+
+- 📊 **Markets** (`/`): search any stock, index, crypto, forex or commodity → interactive candlestick chart (1D/1W/1M/1Y/5Y/All), quote header, key stats, company profile, technicals, related news, a saved watchlist, top gainers/losers (US, India, UK, Japan, crypto heatmap) and a market overview.
+- 🌍 **World Pulse** (`/world.html`): 3D globe of exchanges, conflicts and disasters, crypto prices and crisis feeds.
 
 🔗 **Live:** https://ashswin-git.github.io/global-pulse/
 
-![Global Pulse screenshot](docs/screenshot.png)
+![Markets](docs/markets.png)
+
+![World Pulse](docs/screenshot.png)
 
 ## ✨ Features
 - **3D animated globe** (globe.gl / three.js): pulsing rings for open stock exchanges, conflict hotspots and live disaster alerts; auto-rotates, drag to explore.
@@ -15,7 +20,24 @@
 - Dark glassmorphism UI, smooth entrance animations, fully responsive (mobile friendly).
 - Zero build step, zero backend, zero required API keys.
 
-## 📡 Data sources
+## 📊 Markets data
+All Markets widgets are the free, keyless [TradingView embeddable widgets](https://www.tradingview.com/widget-docs/) (Advanced Chart, Symbol Info, Fundamental Data, Company Profile, Technical Analysis, Timeline, Market Quotes, Hotlists, Crypto Heatmap, Ticker Tape, Market Overview). No API key, no proxy, no backend.
+
+| Market | Freshness in widgets (TradingView's licensing) |
+|---|---|
+| Crypto, forex | Real-time |
+| US & most global stocks | Delayed (~15 min, per exchange) |
+| India | Shown via **BSE** (end-of-day). NSE is not licensed for free embeds, so `NSE:` symbols show "only available on TradingView" |
+| China SSE/SZSE, Hang Seng indices | End-of-day |
+
+## 🙏 Credits & approach
+- **[TradingView widgets](https://www.tradingview.com/widget-docs/)**: all Markets charts and data (attribution kept in the widgets and footer).
+- **[tradingview/lightweight-charts](https://github.com/tradingview/lightweight-charts)** (Apache-2.0, ~17.7k★): evaluated. It needs your own OHLC feed, and no keyless browser-accessible feed exists (Yahoo/Stooq block CORS), so widgets were the better fit. Ready for Phase 3 behind a proxy.
+- **[Open-Dev-Society/OpenStock](https://github.com/Open-Dev-Society/OpenStock)** (AGPL-3.0, ~21k★): inspired the widget-based layout and the "chart Indian stocks through BSE" pattern. **No code copied** (AGPL).
+- **OpenBB**: reviewed; it's a Python platform and needs a server, so not used.
+- [globe.gl](https://github.com/vasturiano/globe.gl) (MIT), CoinGecko, CoinPaprika, GDELT and GDACS power World Pulse.
+
+## 📡 World Pulse data sources
 | Section | Source | Status |
 |---|---|---|
 | Crypto | [CoinGecko](https://www.coingecko.com/en/api), fallback [CoinPaprika](https://api.coinpaprika.com) | ✅ Live, keyless, USD/INR, cached in localStorage |
