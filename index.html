@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Global Pulse — Markets, Crypto & Crisis Dashboard</title>
+<meta name="description" content="Real-time world dashboard: stock exchanges, crypto, conflicts and disasters on an animated 3D globe.">
+<link rel="stylesheet" href="style.css">
+</head><body>
+<div class="bg-glow"></div>
+<header class="glass top">
+  <div class="brand"><span class="pulse-dot"></span> GLOBAL<b>PULSE</b></div>
+  <div class="clock" id="clock">--:--</div>
+</header>
+<div class="ticker glass"><div class="ticker-track" id="ticker">Loading crypto…</div></div>
+<main>
+  <section class="glass globe-card">
+    <div class="card-h"><h2>🌍 World Pulse</h2>
+      <div class="legend"><span><i style="background:#22d3ee"></i>Exchange open</span><span><i style="background:#64748b"></i>Closed</span><span><i style="background:#f43f5e"></i>Conflict</span><span><i style="background:#f59e0b"></i>Disaster</span></div></div>
+    <div id="globe"></div>
+  </section>
+  <section class="glass"><div class="card-h"><h2>📈 Stock Markets</h2><span class="tag" id="stockTag">DEMO</span></div>
+    <div class="grid" id="stocks"></div></section>
+  <section class="glass"><div class="card-h"><h2>🪙 Crypto</h2><span class="tag live" id="cryptoTag">LIVE</span></div>
+    <div class="grid" id="crypto"></div></section>
+  <section class="glass"><div class="card-h"><h2>⚔️ Conflict & War News</h2><span class="tag" id="newsTag">…</span></div>
+    <div class="news" id="news"></div></section>
+  <section class="glass"><div class="card-h"><h2>🚨 Disasters & Crises</h2><span class="tag" id="gdacsTag">…</span></div>
+    <div class="news" id="disasters"></div></section>
+</main>
+<footer>Data: CoinGecko · GDELT · GDACS · exchange hours computed locally. Demo data is always labelled. Not financial advice.</footer>
+<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.33.0/dist/globe.gl.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body></html>
