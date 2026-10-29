@@ -23,3 +23,5 @@
 .watch button.rm{padding:4px 7px;color:var(--mut)}
 footer a{color:var(--ac)}
 @media(max-width:800px){.mk{grid-template-columns:1fr}.w.chart{height:420px}.w.tall{height:420px}.tabs{margin:8px 8px 0}.tape{margin:8px 8px 0}}
+.mkt{font-size:.8rem;font-weight:700}.mkt.open{color:var(--up)}.mkt.closed{color:var(--mut)}
+.dettabs{grid-column:1/-1;margin:0;position:sticky;top:0;z-index:5;padding:8px;background:#05070fcc;backdrop-filter:blur(10px);border-radius:12px}
