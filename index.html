@@ -19,7 +19,7 @@
     <div class="brand"><span class="pulse-dot" aria-hidden="true"></span> GLOBAL<b>PULSE</b> <span class="mut">Markets</span></div>
     <form id="searchForm" role="search" autocomplete="off">
       <label class="sr-only" for="q">Search a stock, index or crypto</label>
-      <input id="q" placeholder="Press / to search: AAPL, Reliance, TCS, Bitcoin, NIFTY, Tesla…" aria-autocomplete="list" aria-controls="sugg">
+      <input id="q" placeholder="Press / to search: AAPL, Reliance, TCS, Bitcoin, Nifty, Tesla…" aria-autocomplete="list" aria-controls="sugg">
       <button type="submit">Search</button>
       <ul id="sugg" class="sugg glass" role="listbox" hidden></ul>
     </form>
@@ -28,11 +28,12 @@
   </section>
 
   <section class="glass head-card"><div class="row"><div id="w-info" class="w"></div>
-    <span id="mktStatus" class="mkt"></span><button id="starBtn" class="star" aria-pressed="false">☆ Add to watchlist</button></div></section>
+    <span id="mktStatus" class="mkt"></span><button id="starBtn" class="star" aria-pressed="false">☆ Add to watchlist</button></div><p id="symNote" class="note warn" role="status" hidden></p></section>
 
   <section class="glass chart-card"><div class="tf" role="group" aria-label="Timeframe">
       <button data-r="1D">1D</button><button data-r="5D">1W</button><button data-r="1M">1M</button><button data-r="12M" class="on">1Y</button><button data-r="60M">5Y</button><button data-r="ALL">All</button>
       <label class="ctype">Style <select id="style"><option value="1">Candles</option><option value="3">Area</option><option value="2">Line</option></select></label></div>
+    <form id="cmpForm" class="cmp" autocomplete="off"><label for="cmp">Compare with</label> <input id="cmp" placeholder="e.g. NASDAQ:MSFT or BSE:INFY"> <button type="submit">Add</button> <button type="button" id="cmpClear" hidden>Clear</button></form>
     <div id="w-chart" class="w chart"></div></section>
 
   <div id="detTabs" class="tf dettabs" role="tablist" hidden></div>
@@ -44,7 +45,9 @@
   <section class="glass"><h2>⭐ Watchlist</h2><div id="watch" class="watch" aria-label="Open or remove symbols"></div><div id="w-watch" class="w"></div></section>
   <section class="glass"><h2>🔥 Top movers & heatmap</h2>
     <div class="tf" role="group" aria-label="Market"><button data-m="america" class="on">US</button><button data-m="india">India</button><button data-m="uk">UK</button><button data-m="japan">Japan</button><button data-m="crypto">Crypto</button><button data-m="heat">S&amp;P heatmap</button></div>
-    <div id="w-movers" class="w tall"></div></section>
+    <div id="w-movers" class="w tall"></div><p class="note">Widget blank? <a id="moversLink" target="_blank" rel="noopener" href="https://www.tradingview.com/markets/stocks-usa/market-movers-gainers/">Open top gainers on TradingView →</a></p></section>
+  <section class="glass"><h2>💱 Forex cross rates</h2><div id="w-fx" class="w tall"></div></section>
+  <section class="glass"><h2>🪙 Crypto screener</h2><div id="w-cscr" class="w tall"></div></section>
   <section class="glass wide"><h2>🌐 Market overview</h2><div id="w-over" class="w tall"></div></section>
 </main>
 <footer>Market data and charts by <a href="https://www.tradingview.com/" target="_blank" rel="noopener">TradingView</a>. Not financial advice. · <a href="world.html">World Pulse: globe, crypto & disasters →</a></footer>

@@ -8,9 +8,10 @@ const isMobile = matchMedia('(max-width:800px)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function fetchT(url, ms = 10000) {
+async function fetchT(url, opt = {}, ms = 10000) {
+  if (typeof opt === 'number') { ms = opt; opt = {}; }
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
-  try { const r = await fetch(url, { signal: ac.signal }); if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; } return r; }
+  try { const r = await fetch(url, { ...opt, signal: ac.signal }); if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; } return r; }
   finally { clearTimeout(t); }
 }
 const cache = {
@@ -31,7 +32,8 @@ let REGION = 'All', FOCUS = null;
 const XMAS = ['2026-12-25', '2026-01-01'];
 const EXCHANGES = [
   { id: 'us', ex: 'NYSE / NASDAQ', idx: 'S&P 500 · Nasdaq 100', tz: 'America/New_York', o: '09:30', c: '16:00', lat: 40.71, lng: -74.01, demo: 5800, hol: ['2026-11-26', ...XMAS] },
-  { id: 'ca', ex: 'TSX', idx: 'S&P/TSX', tz: 'America/Toronto', o: '09:30', c: '16:00', lat: 43.65, lng: -79.38, demo: 24500, hol: XMAS },
+  { id: 'ca', ex: 'TSX', idx: 'S&P/TSX', tz: 'America/Toronto', o: '09:30', c: '16:00', lat: 45.2, lng: -80.6, // drawn offset from Toronto (43.65,-79.38) so the ring doesn't overlap NYSE
+    demo: 24500, hol: XMAS },
   { id: 'br', ex: 'B3', idx: 'Ibovespa', tz: 'America/Sao_Paulo', o: '10:00', c: '17:00', lat: -23.55, lng: -46.63, demo: 130000, hol: XMAS },
   { id: 'uk', ex: 'LSE', idx: 'FTSE 100', tz: 'Europe/London', o: '08:00', c: '16:30', lat: 51.51, lng: -0.09, demo: 8200, hol: [...XMAS, '2026-12-28'] },
   { id: 'de', ex: 'Xetra', idx: 'DAX', tz: 'Europe/Berlin', o: '09:00', c: '17:30', lat: 50.11, lng: 8.68, demo: 19200, hol: [...XMAS, '2026-12-24', '2026-12-31'] },
@@ -76,7 +78,7 @@ async function loadStocks(force) {
   const key = (window.GP_CONFIG || {}).FINNHUB_KEY;
   const proxy = { us: 'SPY', ca: 'EWC', br: 'EWZ', uk: 'EWU', de: 'EWG', fr: 'EWQ', in: 'INDA', cn: 'MCHI', hk: 'EWH', jp: 'EWJ', au: 'EWA' };
   if (key) await Promise.all(EXCHANGES.map(async e => {
-    try { const j = await (await fetchT(`https://finnhub.io/api/v1/quote?symbol=${proxy[e.id]}&token=${encodeURIComponent(key)}`)).json(); if (j && j.c) stockLive[e.id] = { ...j, sym: proxy[e.id] }; } catch {}
+    try { const j = await (await fetchT(`https://finnhub.io/api/v1/quote?symbol=${proxy[e.id]}`, { headers: { 'X-Finnhub-Token': key } })).json(); if (j && j.c) stockLive[e.id] = { ...j, sym: proxy[e.id] }; } catch {}
   }));
   const live = Object.keys(stockLive).length > 0;
   const list = EXCHANGES.filter(e => REGION === 'All' || e.region === REGION);
@@ -169,7 +171,7 @@ async function loadConflictGeo() {
 
 // ---- Disasters (GDACS) ----
 let disasterPts = [];
-const ICON = { EQ: '🫨', TC: '🌀', FL: '🌊', VO: '🌋', WF: '🔥', DR: '☀️' };
+const ICON = { EQ: '〰️', TC: '🌀', FL: '🌊', VO: '🌋', WF: '🔥', DR: '☀️' };
 function renderDisasters(f) {
   f = f.filter(x => REGION === 'All' || !x.geometry || regionOf(x.geometry.coordinates[1], x.geometry.coordinates[0]) === REGION);
   $('disasters').innerHTML = f.length ? f.slice(0, 30).map(x => {

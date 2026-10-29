@@ -69,6 +69,12 @@ python3 -m http.server 8000   # open http://localhost:8000
 ## ✅ Phase 2 (done)
 LIVE / CACHED / ERROR tags with last-updated time, localStorage caching, fetch timeouts and retries, GDELT backoff, CoinPaprika fallback, INR toggle, globe click → details panel + news filter, region filter, lunch breaks and some holidays, WebGL/CDN fallback, accessibility (skip link, focus styles, legend shapes, aria), local/UTC clock, OG/Twitter tags and favicon, reduced-motion support.
 
+## 🔎 Symbol notes (verified 2026-10-29 in free TradingView embeds)
+- Not available in free embeds: `SP:SPX`, `NASDAQ:NDX`, `DJ:DJI`, `TVC:NI225`, `TVC:UKX`, `TVC:HSI`, `NSE:*` (incl. NIFTY/BANKNIFTY), `LSE:SHEL`, `TSE:7203`, `HKEX:700`, `TVC:DXY`.
+- Substitutes used (auto-aliased in search/URL): S&P/Nasdaq/Dow/FTSE → FOREXCOM CFDs (`SPXUSD`, `NSXUSD`, `DJI`, `UKXGBP`); Nikkei → `INDEX:NKY`; Hang Seng → `INDEX:HSI`; Nifty 50 / Bank Nifty → `BSE:NIFTYBEES` / `BSE:BANKBEES` ETFs (labelled as ETF proxies); Shell/Toyota/Tencent → ADRs.
+- Renamed BSE tickers: Zomato → `BSE:ETERNAL`, Tata Motors → `BSE:TMPV`, M&M → `BSE:M_M`, Bajaj Auto → `BSE:BAJAJ_AUTO`.
+- Unknown symbols (not in the verified list) show a notice; widgets themselves cannot be inspected cross-origin.
+
 ## 🗺 Roadmap
 - Geo-located conflict events (GDELT GEO / ACLED) instead of the static hotspot list
 - Full exchange holiday calendars

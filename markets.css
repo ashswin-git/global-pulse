@@ -25,3 +25,6 @@ footer a{color:var(--ac)}
 @media(max-width:800px){.mk{grid-template-columns:1fr}.w.chart{height:420px}.w.tall{height:420px}.tabs{margin:8px 8px 0}.tape{margin:8px 8px 0}}
 .mkt{font-size:.8rem;font-weight:700}.mkt.open{color:var(--up)}.mkt.closed{color:var(--mut)}
 .dettabs{grid-column:1/-1;margin:0;position:sticky;top:0;z-index:5;padding:8px;background:#05070fcc;backdrop-filter:blur(10px);border-radius:12px}
+
+.cmp{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0;font-size:13px}.cmp input{flex:1;min-width:160px;padding:6px 8px;border-radius:8px;border:1px solid #2a3550;background:#0b1220;color:inherit}.cmp button{padding:6px 10px;border-radius:8px;border:1px solid #2a3550;background:#16213a;color:inherit;cursor:pointer}
+.note.warn{color:#fbbf24}.watch small.up{color:#34d399}.watch small.dn{color:#f87171}
