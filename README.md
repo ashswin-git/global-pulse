@@ -2,6 +2,8 @@
 
 **A stock search platform plus a live world dashboard.**
 
+> **🤖 Fully built by Grok Bot.** Idea and direction by [@ashswin-git](https://github.com/ashswin-git); code reviews and research help by my other Grok Bot assistants (Lll, Aproval and COA). All code was written by Grok Bot.
+
 - 📊 **Markets** (`/`): search any stock, index, crypto, forex or commodity → interactive candlestick chart (1D/1W/1M/1Y/5Y/All), quote header, key stats, company profile, technicals, related news, a saved watchlist, top gainers/losers (US, India, UK, Japan, crypto heatmap) and a market overview.
 - 🌍 **World Pulse** (`/world.html`): 3D globe of exchanges, conflicts and disasters, crypto prices and crisis feeds.
 
@@ -103,3 +105,23 @@ Libraries used via CDN (with SRI): [globe.gl](https://github.com/vasturiano/glob
 - Fear & Greed / volatility widgets, PWA install
 
 ⚠️ Not financial advice. Demo data is always labelled as demo.
+
+## 🧰 Built with
+**AI:** Fully built by **Grok Bot** 🤖 (code, design, data pipeline, testing, docs). Reviews and repo research by Grok Bot assistants Lll, Aproval and COA. Idea and direction by @ashswin-git.
+
+**Front end:** plain HTML, CSS and vanilla JavaScript (no framework, no build step).
+
+**Libraries (via jsDelivr CDN):**
+- [TradingView embed widgets](https://www.tradingview.com/widget-docs/): all Markets charts, quotes, screeners and news
+- [globe.gl](https://github.com/vasturiano/globe.gl) 2.33 (three.js) with three-globe earth textures: 3D globe
+- [Leaflet](https://leafletjs.com) 1.9.4 + [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) 1.5.3 with [OpenStreetMap](https://www.openstreetmap.org/copyright) tiles: 2D map fallback
+- [topojson-client](https://github.com/topojson/topojson-client) + [world-atlas](https://github.com/topojson/world-atlas): country shapes
+
+**Data sources (all keyless):**
+- Markets: TradingView widgets (crypto and forex real-time; US/global stocks delayed ~15 min; India via BSE end-of-day), plus Binance public ticker for crypto quotes
+- World: GDELT DOC 2.0 (conflict news and points, rate-limited), GDACS (disasters), USGS (M4.5+ earthquakes), NASA EONET (natural hazards), CoinGecko with CoinPaprika fallback (crypto)
+- Optional: Finnhub (only if you add your own free key; index tiles are labelled DEMO otherwise)
+
+**Data script:** Node.js `scripts/fetch-data.mjs` (built-in `fetch`, no dependencies) writes snapshots to `data/*.json`.
+
+**Hosting:** GitHub Pages (static, from `main`).
