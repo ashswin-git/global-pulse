@@ -2,8 +2,6 @@
 
 **A stock search platform plus a live world dashboard.**
 
-> **🤖 Fully built by Grok Bot.** Idea and direction by [@ashswin-git](https://github.com/ashswin-git); code reviews and research help by my other Grok Bot assistants (Lll, Aproval and COA). All code was written by Grok Bot.
-
 - 📊 **Markets** (`/`): search any stock, index, crypto, forex or commodity → interactive candlestick chart (1D/1W/1M/1Y/5Y/All), quote header, key stats, company profile, technicals, related news, a saved watchlist, top gainers/losers (US, India, UK, Japan, crypto heatmap) and a market overview.
 - 🌍 **World Pulse** (`/world.html`): 3D globe of exchanges, conflicts and disasters, crypto prices and crisis feeds.
 
@@ -32,7 +30,7 @@ All Markets widgets are the free, keyless [TradingView embeddable widgets](https
 | India | Shown via **BSE** (end-of-day). NSE is not licensed for free embeds, so `NSE:` symbols show "only available on TradingView" |
 | China SSE/SZSE, Hang Seng indices | End-of-day |
 
-## 🙏 Credits & approach
+## 🧭 Approach
 - **[TradingView widgets](https://www.tradingview.com/widget-docs/)**: all Markets charts and data (attribution kept in the widgets and footer).
 - **[tradingview/lightweight-charts](https://github.com/tradingview/lightweight-charts)** (Apache-2.0, ~17.7k★): evaluated. It needs your own OHLC feed, and no keyless browser-accessible feed exists (Yahoo/Stooq block CORS), so widgets were the better fit. Ready for Phase 3 behind a proxy.
 - **[Open-Dev-Society/OpenStock](https://github.com/Open-Dev-Society/OpenStock)** (AGPL-3.0, ~21k★): inspired the widget-based layout and the "chart Indian stocks through BSE" pattern. **No code copied** (AGPL).
@@ -87,7 +85,7 @@ LIVE / CACHED / ERROR tags with last-updated time, localStorage caching, fetch t
 - **Shareable URL**: `layers`, `region`, `t`, `at`, `pov`, `view`.
 - **2D fallback**: Leaflet + markercluster on mobile or without WebGL (toggle 🗺/🌍).
 
-### Inspiration & libraries (credits)
+### Inspiration & libraries
 Ideas only, **no code copied** from these dashboards:
 [koala73/worldmonitor](https://github.com/koala73/worldmonitor) (AGPL-3.0),
 [hipcityreg/situation-monitor](https://github.com/hipcityreg/situation-monitor) (no license),
@@ -107,8 +105,6 @@ Libraries used via CDN (with SRI): [globe.gl](https://github.com/vasturiano/glob
 ⚠️ Not financial advice. Demo data is always labelled as demo.
 
 ## 🧰 Built with
-**AI:** Fully built by **Grok Bot** 🤖 (code, design, data pipeline, testing, docs). Reviews and repo research by Grok Bot assistants Lll, Aproval and COA. Idea and direction by @ashswin-git.
-
 **Front end:** plain HTML, CSS and vanilla JavaScript (no framework, no build step).
 
 **Libraries (via jsDelivr CDN):**

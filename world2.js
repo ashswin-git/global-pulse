@@ -1,5 +1,5 @@
 // World Pulse v2: layers, time slider, country panel, keyword/near-me alerts, arcs, URL state, 2D fallback.
-// Ideas (not code) inspired by worldmonitor, situation-monitor, globalthreatmap, LiveActionMap, OSINT-War-Room; see README credits.
+// Ideas (not code) inspired by worldmonitor, situation-monitor, globalthreatmap, LiveActionMap, OSINT-War-Room; see README.
 const W2 = (() => {
   const LAYERS = { news: 'Conflict news points', heat: 'Conflict heat (hexbin)', quakes: 'Earthquakes M4.5+ (USGS)', dis: 'Disasters (GDACS)', eonet: 'Hazards (NASA EONET)', ex: 'Stock exchanges' };
   const url = new URLSearchParams(location.search);
