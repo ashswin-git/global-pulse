@@ -17,14 +17,16 @@ const W2 = (() => {
   const extra = { quakes: [], eonet: [] };
   const INTEL = { cables: [], nuclear: [], power: [], crypto: [], tech: [], bases: [], ports: [], pipes: [], chokepoints: [], cameras: [] };
   const INTEL_FILE = { cables: 'cables', nuclear: 'nuclear', power: 'power', crypto: 'crypto-exchanges', tech: 'tech', bases: 'bases', ports: 'ports', pipes: 'pipelines', chokepoints: 'chokepoints', cameras: 'cameras' };
-  let countries = [], leafletMap = null, leafletLayer = null, leafletLines = null, playing = false, raf = 0;
+  let countries = [], leafletMap = null, leafletLayer = null, leafletLines = null, playing = false, raf = 0, viewMode = '3d';
 
   function saveUrl() {
     const q = new URLSearchParams();
     q.set('layers', [...st.layers].join(',')); if (REGION !== 'All') q.set('region', REGION);
     q.set('t', st.win === 168 ? '7d' : '24h'); if (st.pos < st.win) q.set('at', Math.round(st.pos));
+    if (st.camVideoOnly) q.set('vid', '1');
     if (globe) { const p = globe.pointOfView(); q.set('pov', [p.lat, p.lng, p.altitude].map(n => n.toFixed(2)).join(',')); }
-    if (leafletMap) q.set('view', '2d');
+    if (viewMode === '2d') q.set('view', '2d');
+    if (leafletMap && viewMode === '2d') { const c = leafletMap.getCenter(); q.set('z', String(leafletMap.getZoom())); q.set('c', c.lat.toFixed(3) + ',' + c.lng.toFixed(3)); }
     history.replaceState(null, '', '?' + q.toString().replace(/%2C/g, ','));
   }
   const inTime = t => { if (!t) return true; const now = Date.now(), start = now - st.win * 3600e3; return t >= start && t <= start + st.pos * 3600e3; };
@@ -37,18 +39,34 @@ const W2 = (() => {
     const e = await dataFile('eonet'); let k = e?.data;
     if (!k) try { const r = await (await fetchT('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&days=7&limit=200')).json(); k = { features: (r.events || []).map(ev => { const g = (ev.geometry || []).filter(g => g.type === 'Point').at(-1); return g && { geometry: { coordinates: g.coordinates }, properties: { title: ev.title, cat: ev.categories?.[0]?.title, date: g.date, url: ev.link } }; }).filter(Boolean) }; } catch {}
     extra.eonet = (k?.features || []).map(f => ({ lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0], label: `${f.properties.title} (${f.properties.cat || 'hazard'})`, kind: 'eonet', t: Date.parse(f.properties.date), url: f.properties.url, region: regionOf(f.geometry.coordinates[1], f.geometry.coordinates[0]) }));
-    render(); checkNearMe();
+    updateLayerCounts(); render(); checkNearMe();
   }
-  async function loadIntel() {
-    await Promise.all(Object.entries(INTEL_FILE).map(async ([k, file]) => {
-      try {
-        const d = await (await fetchT('data/intel/' + file + '.json')).json();
-        INTEL[k] = d.items || [];
-        INTEL._meta = INTEL._meta || {};
-        INTEL._meta[k] = d.meta;
-      } catch { INTEL[k] = []; }
-    }));
+  const INTEL_READY = {};
+  function layerIntelKey(k) { return k === 'cams' ? 'cameras' : (INTEL_FILE[k] ? k : null); }
+  async function loadIntelIndex() {
+    try {
+      const idx = await (await fetchT('data/intel/index.json')).json();
+      INTEL._counts = idx.counts || {};
+      INTEL._videoCams = idx.videoCams;
+      updateLayerCounts();
+    } catch {}
+  }
+  async function ensureIntel(key) {
+    if (!key || INTEL_READY[key]) return;
+    INTEL_READY[key] = 1;
+    const file = INTEL_FILE[key];
+    if (!file) return;
+    try {
+      const d = await (await fetchT('data/intel/' + file + '.json')).json();
+      INTEL[key] = d.items || [];
+      INTEL._meta = INTEL._meta || {};
+      INTEL._meta[key] = d.meta;
+    } catch { INTEL[key] = []; }
+    updateLayerCounts();
     render();
+  }
+  function loadIntelForLayers() {
+    return Promise.all([...st.layers].map(k => { const ik = layerIntelKey(k); return ik ? ensureIntel(ik) : null; }));
   }
   function intelPts(key, kind) {
     return (INTEL[key] || []).map(it => ({
@@ -85,7 +103,7 @@ const W2 = (() => {
     if (L.has('bases')) intelPts('bases', 'bases').forEach(d => out.push(d));
     if (L.has('ports')) intelPts('ports', 'ports').forEach(d => out.push(d));
     if (L.has('chokepoints')) intelPts('chokepoints', 'chokepoints').forEach(d => out.push(d));
-    if (L.has('cams')) intelPts('cameras', 'cams').forEach(d => out.push(d));
+    if (L.has('cams')) intelPts('cameras', 'cams').filter(d => !st.camVideoOnly || d.intel?.vid || d.intel?.stream).forEach(d => out.push(d));
     return out.filter(p => reg(p) && (STATIC_KIND.has(p.kind) || inTime(p.t)));
   }
   function arcs(pts) {
@@ -94,10 +112,18 @@ const W2 = (() => {
     return big.map(p => { const e = EXCHANGES.reduce((a, b) => dist(p, a) < dist(p, b) ? a : b); return { startLat: p.lat, startLng: p.lng, endLat: e.lat, endLng: e.lng, color: [COL[p.k], '#22d3ee'] }; });
   }
   function render() {
-    const pts = visible();
+    let pts = visible();
+    if (viewMode !== '2d' && pts.length > 900) {
+      const alt = (globe && globe.pointOfView && globe.pointOfView().altitude) || 2;
+      if (alt > 0.9) {
+        const keep = new Set(['exchange', 'war', 'dis', 'quake', 'eonet', 'chokepoints', 'nuclear', 'cams']);
+        let n = 0;
+        pts = pts.filter(p => keep.has(p.kind) || keep.has(p.k) ? (n++, true) : (n++ % 4 === 0));
+      }
+    }
     const paths = [...intelPaths('cables', 'cable'), ...intelPaths('pipes', 'pipe')];
     $('w2count').textContent = `${pts.length} markers${paths.length ? ` · ${paths.length} routes` : ''} · window ${st.win === 168 ? '7 days' : '24 hours'}${st.pos < st.win ? ` up to ${new Date(Date.now() - (st.win - st.pos) * 3600e3).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}`;
-    if (leafletMap) return render2d(pts, paths);
+    if (viewMode === '2d' && leafletMap) return render2d(pts, paths);
     if (!globe) return;
     const R = { war: 4, open: 4, chokepoints: 5, nuclear: 3, crypto: 3, ports: 2.8, tech: 2.6, bases: 2.2, power: 1.8, cams: 2.4 };
     const RING = new Set(['open', 'lunch', 'war', 'dis', 'quake', 'chokepoints', 'nuclear']);
@@ -139,7 +165,8 @@ const W2 = (() => {
     else if (d.kind === 'chokepoints') bits.push(it.typ || '', it.src || '');
     else if (d.kind === 'cams') {
       const s = CAM_SRC()[it.src] || {};
-      bits.push(it.c || '', s.name || it.src || 'Official public camera');
+      const media = (it.vid || it.stream) ? 'Video' : 'Snapshot';
+      bits.push(media, it.c || '', s.name || it.src || 'Official public camera');
     }
     const credit = d.kind === 'cams' ? (CAM_SRC()[it.src]?.name || src.attribution || '') : (src.attribution || src.source || '');
     return `<b>${esc(d.label || it.n || '')}</b>${typ ? `<span class="typ">${esc(typ)}</span>` : ''}${bits.filter(Boolean).map(x => `<span>${esc(x)}</span>`).join('')}${credit ? `<span class="mut">${esc(credit)}</span>` : ''}<span class="mut">Click for full details</span>`;
@@ -192,8 +219,16 @@ const W2 = (() => {
       .polygonLabel(() => null)
       .onPolygonHover(h => { globe.polygonCapColor(d => d === h ? 'rgba(34,211,238,0.15)' : 'rgba(0,0,0,0)'); setHover('country', h && { kind: 'country', properties: h.properties, label: h.properties?.name }); })
       .onPolygonClick(d => countryPanel(d.properties.name));
+    const ctl = globe.controls(); ctl.minDistance = 1.08; ctl.maxDistance = 1000;
     if (st.pov) { const [lat, lng, altitude] = st.pov.split(',').map(Number); if ([lat, lng, altitude].every(isFinite)) { globe.pointOfView({ lat, lng, altitude }); globe.controls().autoRotate = rotating = false; } }
-    let t; globe.onZoom(() => { clearTimeout(t); t = setTimeout(saveUrl, 800); });
+    let t; globe.onZoom(() => {
+      clearTimeout(t); t = setTimeout(saveUrl, 800);
+      const p = globe.pointOfView();
+      if (viewMode === '3d' && p.altitude < 0.28) {
+        const z = Math.max(5, Math.min(14, Math.round(2 - Math.log2(Math.max(0.02, p.altitude) / 2.2))));
+        setViewMode('2d', p.lat, p.lng, z);
+      }
+    });
     if (countries.length) globe.polygonsData(countries);
     const gEl = $('globe');
     gEl.addEventListener('pointermove', onTipMove, { passive: true });
@@ -227,6 +262,7 @@ const W2 = (() => {
   const seen = new Set(JSON.parse(localStorage.getItem('gp:kwseen') || '[]'));
   function renderKw() { $('kwList').innerHTML = kw().map(k => `<span class="chip">${esc(k)} <button data-k="${esc(k)}" aria-label="Remove ${esc(k)}">✕</button></span>`).join('') || '<span class="mut">No keywords yet.</span>'; checkKw(); }
   function notify(title, body, href) {
+    if (window.GPUI) GPUI.toast(title, body, { href });
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     const n = new Notification(title, { body, icon: 'favicon.svg' }); if (href) n.onclick = () => open(href, '_blank', 'noopener');
   }
@@ -259,14 +295,75 @@ const W2 = (() => {
   }
 
   // ---- Leaflet 2D fallback ----
+  function updateLayerCounts() {
+    const c0 = INTEL._counts || {};
+    const n = {
+      news: conflictPts.filter(p => !p.ref).length || conflictPts.length,
+      heat: conflictPts.filter(p => !p.ref).length,
+      quakes: extra.quakes.length,
+      dis: disasterPts.length,
+      eonet: extra.eonet.length,
+      cams: (INTEL.cameras || []).length || c0.cameras || c0.cams,
+      ex: typeof EXCHANGES !== 'undefined' ? EXCHANGES.length : '',
+      crypto: (INTEL.crypto || []).length || c0.crypto,
+      cables: (INTEL.cables || []).length || c0.cables,
+      nuclear: (INTEL.nuclear || []).length || c0.nuclear,
+      power: (INTEL.power || []).length || c0.power,
+      pipes: (INTEL.pipes || []).length || c0.pipes,
+      ports: (INTEL.ports || []).length || c0.ports,
+      bases: (INTEL.bases || []).length || c0.bases,
+      tech: (INTEL.tech || []).length || c0.tech,
+      chokepoints: (INTEL.chokepoints || []).length || c0.chokepoints,
+    };
+    for (const [k, v] of Object.entries(n)) {
+      const el = document.querySelector('#layers [data-c="' + k + '"]');
+      if (el && v !== '' && v != null) el.textContent = v;
+    }
+    const ev = document.querySelector('#layers [data-c="camsvid"]');
+    if (ev && INTEL._videoCams) ev.textContent = INTEL._videoCams;
+  }
   function init2d() {
-    const el = $('globe'); el.innerHTML = ''; el.setAttribute('aria-label', '2D world map with event markers');
-    leafletMap = L.map(el, { worldCopyJump: true, zoomControl: true }).setView([20, 40], isMobile ? 1 : 2);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 8, className: 'dark-tiles' }).addTo(leafletMap);
-    leafletLayer = L.markerClusterGroup({ maxClusterRadius: 40 }).addTo(leafletMap);
+    const el = $('map2d') || $('globe');
+    if (leafletMap) return;
+    let center = [20, 40], z = isMobile ? 2 : 3;
+    const c = new URLSearchParams(location.search).get('c');
+    const zq = +new URLSearchParams(location.search).get('z');
+    if (c) { const [a, b] = c.split(',').map(Number); if (isFinite(a) && isFinite(b)) center = [a, b]; }
+    if (isFinite(zq) && zq >= 1) z = Math.min(19, zq);
+    leafletMap = L.map(el, { worldCopyJump: true, zoomControl: true, minZoom: 1, maxZoom: 20, renderer: L.canvas({ padding: 0.5 }) }).setView(center, z);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri — Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+      maxZoom: 20, maxNativeZoom: 19,
+    }).addTo(leafletMap);
+    leafletLayer = L.markerClusterGroup({ maxClusterRadius: 48, disableClusteringAtZoom: 11, spiderfyOnMaxZoom: true, showCoverageOnHover: false }).addTo(leafletMap);
     leafletLines = L.layerGroup().addTo(leafletMap);
-    leafletMap.on('moveend', saveUrl); $('rotateBtn').hidden = true;
+    leafletMap.on('moveend', saveUrl);
     if (countries.length) addLeafletCountries();
+  }
+  let _init3d;
+  async function setViewMode(mode, lat, lng, zoom) {
+    viewMode = mode;
+    const g = $('globe'), m = $('map2d');
+    if (m) { m.hidden = mode !== '2d'; if (g) g.hidden = mode !== '3d'; }
+    if (mode === '2d') {
+      if (window.GPUI) await GPUI.loadLeaflet();
+      if (!leafletMap && window.L) init2d();
+      if ($('rotateBtn')) $('rotateBtn').hidden = true;
+      if (leafletMap) {
+        leafletMap.invalidateSize();
+        if (lat != null) leafletMap.setView([lat, lng], zoom || Math.max(leafletMap.getZoom(), 8));
+      }
+    } else {
+      if (window.GPUI) await GPUI.loadGlobeLib();
+      if (!globe && typeof _init3d === 'function') { _init3d(); enhanceGlobe(); }
+      if ($('rotateBtn')) $('rotateBtn').hidden = false;
+    }
+    if ($('viewBtn')) $('viewBtn').textContent = mode === '2d' ? '🌍 3D globe' : '🗺 2D map';
+    render(); saveUrl();
+  }
+  function flyTo(lat, lng, zoom) {
+    if (lat == null || lng == null) return;
+    setViewMode('2d', lat, lng, zoom || 16);
   }
   function addLeafletCountries() {
     L.geoJSON({ type: 'FeatureCollection', features: countries }, { style: { color: '#334155', weight: 0.6, fillOpacity: 0 }, onEachFeature: (f, l) => l.on('click', () => countryPanel(f.properties.name)) }).addTo(leafletMap).bringToBack();
@@ -288,8 +385,18 @@ const W2 = (() => {
   // ---- wire up ----
   function ui() {
     const DOT = { news: COL.war, heat: COL.war, quakes: COL.quake, dis: COL.dis, eonet: COL.eonet, cams: COL.cams, ex: COL.open, crypto: COL.crypto, cables: COL.cable, nuclear: COL.nuclear, power: COL.power, pipes: COL.pipe, ports: COL.ports, bases: COL.bases, tech: COL.tech, chokepoints: COL.chokepoints };
-    $('layers').innerHTML = LAYER_GROUPS.map(([title, group]) => `<div class="layer-group"><b>${title}</b>${Object.entries(group).map(([k, n]) => `<label><input type="checkbox" data-l="${k}" ${st.layers.has(k) ? 'checked' : ''}> <i class="dot" style="background:${DOT[k]}"></i>${n}</label>`).join('')}</div>`).join('');
-    $('layers').onchange = e => { const k = e.target.dataset.l; e.target.checked ? st.layers.add(k) : st.layers.delete(k); render(); saveUrl(); };
+    $('layers').innerHTML = LAYER_GROUPS.map(([title, group]) => `<div class="layer-group"><b>${title}</b>${Object.entries(group).map(([k, n]) => `<label class="layer-row"><input type="checkbox" data-l="${k}" ${st.layers.has(k) ? 'checked' : ''}> <i class="dot" style="background:${DOT[k]}"></i><span>${n}</span><span class="count" data-c="${k}"></span></label>`).join('')}${title === 'Live events' ? `<label class="layer-row sub"><input type="checkbox" id="camVideoOnly" ${st.camVideoOnly ? 'checked' : ''}> <span>Video cameras only</span><span class="count" data-c="camsvid"></span></label>` : ''}</div>`).join(''); updateLayerCounts();
+    $('layers').onchange = async e => {
+      const k = e.target.dataset.l; if (!k) return;
+      if (e.target.checked) { st.layers.add(k); const ik = layerIntelKey(k); if (ik) await ensureIntel(ik); }
+      else st.layers.delete(k);
+      render(); saveUrl();
+    };
+    const vidBox = $('camVideoOnly');
+    if (vidBox) {
+      vidBox.checked = !!st.camVideoOnly;
+      vidBox.onchange = () => { st.camVideoOnly = vidBox.checked; render(); saveUrl(); };
+    }
     $('tWin').value = st.win === 168 ? '7d' : '24h'; $('tSlider').max = st.win; $('tSlider').value = st.pos;
     $('tWin').onchange = e => { st.win = e.target.value === '7d' ? 168 : 24; $('tSlider').max = st.win; setPos(st.win); saveUrl(); };
     $('tSlider').oninput = e => setPos(+e.target.value); $('tSlider').onchange = saveUrl;
@@ -304,22 +411,39 @@ const W2 = (() => {
       navigator.geolocation.getCurrentPosition(p => { localStorage.setItem('gp:near', JSON.stringify({ lat: +p.coords.latitude.toFixed(2), lng: +p.coords.longitude.toFixed(2), km: +$('nearKm').value })); checkNearMe(); },
         () => $('nearOut').innerHTML = '<p class="empty">Location permission denied.</p>', { maximumAge: 3600e3, timeout: 15000 });
     };
-    $('viewBtn').textContent = leafletMap ? '🌍 3D globe' : '🗺 2D map';
-    $('viewBtn').onclick = () => { const q = new URLSearchParams(location.search); q.set('view', leafletMap ? '3d' : '2d'); q.delete('pov'); location.search = q; };
+    if (window.GPUI) { GPUI.wirePanel(); GPUI.wireIntelTabs(); }
+    $('viewBtn').textContent = viewMode === '2d' ? '🌍 3D globe' : '🗺 2D map';
+    $('viewBtn').onclick = () => setViewMode(viewMode === '2d' ? '3d' : '2d');
     const r = url.get('region'); if (r) { $('region').value = r; REGION = $('region').value; }
     $('region').addEventListener('change', saveUrl);
     renderKw();
   }
 
   return {
-    boot(origInit) {
-      const want2d = st.view === '2d' || (st.view !== '3d' && isMobile) || !webglOK() || !window.Globe;
-      if (want2d && window.L) init2d(); else { origInit(); enhanceGlobe(); }
-      ui(); loadCountries(); loadExtra(); loadIntel(); setInterval(loadExtra, 15 * 60000);
+    async boot(origInit) {
+      _init3d = origInit;
+      const want2d = st.view === '2d' || (st.view !== '3d' && isMobile) || !webglOK();
+      viewMode = want2d ? '2d' : '3d';
+      if (want2d) {
+        if (window.GPUI) await GPUI.loadLeaflet();
+        if (window.L) { init2d(); setViewMode('2d'); }
+      } else {
+        if (window.GPUI) await GPUI.loadGlobeLib();
+        origInit(); enhanceGlobe();
+        const g = $('globe'), m = $('map2d'); if (m) m.hidden = true; if (g) g.hidden = false;
+      }
+      ui();
+      loadIntelIndex();
+      loadIntelForLayers();
+      loadExtra();
+      setTimeout(() => { if (window.GPUI) GPUI.loadTopo().then(loadCountries); else loadCountries(); }, 0);
+      setInterval(loadExtra, 15 * 60000);
     },
-    render, checkKw, showHover(d, x, y) { hover.point = d || null; if (x != null) hover.x = x; if (y != null) hover.y = y; placeTip(); },
+    render, checkKw, flyTo, setViewMode, updateLayerCounts,
+    showHover(d, x, y) { hover.point = d || null; if (x != null) hover.x = x; if (y != null) hover.y = y; placeTip(); },
   };
 })();
+window.W2 = W2;
 // Hook into app.js
 const _origInit = initGlobe;
 initGlobe = () => W2.boot(_origInit);

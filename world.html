@@ -1,72 +1,91 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Global Pulse — Markets, Crypto & Crisis Dashboard</title>
-<meta name="description" content="Animated world dashboard: stock exchanges, crypto, undersea cables, power plants, ports, pipelines, military bases and crisis feeds on a 3D globe.">
+<title>Global Pulse — World Pulse</title>
+<meta name="description" content="Intel dashboard: stock exchanges, crypto, undersea cables, power plants, ports, pipelines, military bases, official cameras and crisis feeds on a sharp tiled 3D globe.">
 <meta name="theme-color" content="#05070f">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<meta property="og:type" content="website"><meta property="og:title" content="Global Pulse 🌍">
-<meta property="og:description" content="Stock exchanges, crypto, conflicts and disasters on one animated 3D globe.">
-<meta property="og:url" content="https://ashswin-git.github.io/global-pulse/">
+<meta property="og:type" content="website"><meta property="og:title" content="Global Pulse — World Pulse">
+<meta property="og:description" content="Stock exchanges, crypto, conflicts, infrastructure and official cameras on a zoomable tiled 3D globe.">
+<meta property="og:url" content="https://ashswin-git.github.io/global-pulse/world.html">
 <meta property="og:image" content="https://ashswin-git.github.io/global-pulse/docs/screenshot.png">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Global Pulse 🌍">
-<meta name="twitter:description" content="Stock exchanges, crypto, conflicts and disasters on one animated 3D globe.">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Global Pulse — World Pulse">
+<meta name="twitter:description" content="Stock exchanges, crypto, conflicts and official cameras on a zoomable tiled 3D globe.">
 <meta name="twitter:image" content="https://ashswin-git.github.io/global-pulse/docs/screenshot.png">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous">
 <link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="markets.css">
-</head><body>
+</head>
+<body class="dash">
 <a class="skip" href="#main">Skip to content</a>
 <div class="bg-glow" aria-hidden="true"></div>
-<nav class="tabs glass" aria-label="Main sections"><a href="./">📊 Markets</a><a href="world.html" aria-current="page">🌍 World Pulse</a></nav>
-<header class="glass top">
+<header class="topbar">
   <div class="brand"><span class="pulse-dot" aria-hidden="true"></span> GLOBAL<b>PULSE</b></div>
+  <nav class="tabs" aria-label="Main sections"><a href="./">📊 Markets</a><a href="world.html" aria-current="page">🌍 World Pulse</a><a href="weather.html">🌦️ Weather</a></nav>
   <div class="controls">
     <label class="sr-only" for="region">Region</label>
     <select id="region"><option>All</option><option>Americas</option><option>Europe</option><option>Africa & Middle East</option><option>Asia-Pacific</option></select>
-    <span class="clock" id="clock" aria-live="off">--:--</span><button id="tzBtn">Show UTC</button>
+    <span class="clock" id="clock" aria-live="off">--:--</span>
+    <button type="button" id="tzBtn">Show UTC</button>
+    <button type="button" id="rotateBtn" aria-pressed="false">⏸ Pause rotation</button>
+    <button type="button" id="viewBtn">🗺 2D map</button>
+    <button type="button" class="intel-fab" id="intelBtn" aria-expanded="false" aria-controls="intelRail">Intel</button>
   </div>
 </header>
-<div class="ticker glass" tabindex="0" aria-label="Crypto price ticker (hover or focus to pause)"><div class="ticker-track" id="ticker">Loading crypto…</div></div>
-<main id="main" tabindex="-1">
-  <section class="glass globe-card" aria-labelledby="h-globe">
-    <div class="card-h"><h2 id="h-globe"><span aria-hidden="true">🌍</span> World Pulse</h2>
-      <div class="legend" role="list" aria-label="Map legend">
-        <span role="listitem"><i class="dot" style="background:#22d3ee"></i>Exchange open</span>
-        <span role="listitem"><i class="dot hollow"></i>Closed</span>
-        <span role="listitem"><i class="tri"></i><span id="legWar">Conflict (reference)</span></span>
-        <span role="listitem"><i class="sq"></i>Disaster (GDACS)</span><span role="listitem"><i class="dot" style="background:#a78bfa"></i>Quake</span><span role="listitem"><i class="dot" style="background:#34d399"></i>Hazard</span>
-        <span role="listitem"><i class="dot" style="background:#7dd3fc"></i>Cables</span><span role="listitem"><i class="dot" style="background:#f472b6"></i>Nuclear</span><span role="listitem"><i class="dot" style="background:#fbbf24"></i>Power</span><span role="listitem"><i class="dot" style="background:#fb923c"></i>Pipelines</span><span role="listitem"><i class="dot" style="background:#a3e635"></i>Bases</span><span role="listitem"><i class="dot" style="background:#818cf8"></i>Tech</span><span role="listitem"><i class="dot" style="background:#fda4af"></i>Chokepoints</span><span role="listitem"><i class="dot" style="background:#38bdf8"></i>Public cameras</span>
-        <button id="rotateBtn" aria-pressed="false">⏸ Pause rotation</button> <button id="viewBtn">🗺 2D map</button>
-      </div></div>
-    <fieldset class="w2bar"><legend class="sr-only">Map layers</legend><div id="layers" class="layers"></div></fieldset>
+<main id="main" class="dash-stage" tabindex="-1">
+  <button type="button" class="panel-fab" id="panelBtn" aria-expanded="false" aria-controls="layerPanel">Layers</button>
+  <aside class="side-panel" id="layerPanel">
+    <div class="side-panel-h"><h3>Layers</h3><button type="button" class="panel-close" id="panelClose" aria-label="Close layers">✕</button></div>
+    <input id="layerSearch" type="search" placeholder="Search layers" autocomplete="off">
+    <div id="layers" class="layers"></div>
     <div class="w2bar time"><label for="tWin">Time</label> <select id="tWin"><option value="24h">Last 24h</option><option value="7d">Last 7 days</option></select>
-      <input type="range" id="tSlider" min="0" max="24" step="0.25" aria-label="Show events up to this time"> <button id="playBtn">▶ Play</button> <span id="w2count" class="mut" aria-live="polite"></span></div>
-    <div class="globe-wrap"><div id="mapTip" class="map-tip" hidden role="tooltip"></div><div id="globe" role="img" aria-label="3D globe with markers for stock exchanges, conflicts and disasters. Click a marker for details."></div>
-      <aside id="details" class="glass details" hidden aria-live="polite"></aside></div>
-  </section>
-  <section class="glass" aria-labelledby="h-al"><div class="card-h"><h2 id="h-al"><span aria-hidden="true">🔔</span> Watch &amp; alerts</h2><button id="notifBtn">🔕 Enable browser alerts</button></div>
-    <form id="kwForm" class="cmp"><label for="kwIn">Keyword watch</label> <input id="kwIn" placeholder="e.g. Taiwan, oil, Kashmir" maxlength="40"> <button>Add</button></form>
-    <div id="kwList" class="chips"></div><div id="kwHits" class="news"></div>
-    <p class="note">Keywords are checked against loaded GDELT headlines while this tab is open. Stored only in this browser.</p>
-    <div class="cmp"><button id="nearBtn" type="button">📍 Alert me about events near me</button> <label>within <select id="nearKm"><option>250</option><option selected>500</option><option>1000</option></select> km</label></div>
-    <div id="nearOut" class="news"></div><p class="note">Location is rounded to ~1 km and kept only in this browser (localStorage); never sent anywhere.</p></section>
-  <section class="glass" aria-labelledby="h-st"><div class="card-h"><h2 id="h-st"><span aria-hidden="true">📈</span> Stock Markets</h2><span class="tag" id="stockTag">DEMO</span></div>
-    <p class="note">Index prices are DEMO: no free, keyless index-price API allows browser access (Stooq blocks it). Add a free Finnhub key in config.js for live ETF quotes. Open/closed status is computed from real exchange hours.</p>
-    <div class="grid" id="stocks"></div></section>
-  <section class="glass" aria-labelledby="h-cr"><div class="card-h"><h2 id="h-cr"><span aria-hidden="true">🪙</span> Crypto</h2><span><button id="curBtn">₹ Show INR</button> <span class="tag" id="cryptoTag">…</span></span></div>
-    <p id="cryptoGlobal" class="note"></p><div class="grid" id="crypto"></div></section>
-  <section class="glass" aria-labelledby="h-nw"><div class="card-h"><h2 id="h-nw"><span aria-hidden="true">⚔️</span> Conflict &amp; War News</h2><span class="tag" id="newsTag">…</span></div>
-    <div id="newsFilter" class="note"></div><div class="news" id="news"></div></section>
-  <section class="glass" aria-labelledby="h-ds"><div class="card-h"><h2 id="h-ds"><span aria-hidden="true">🚨</span> Disasters & Crises</h2><span class="tag" id="gdacsTag">…</span></div>
-    <div class="news" id="disasters"></div></section>
+      <input type="range" id="tSlider" min="0" max="24" step="0.25" aria-label="Show events up to this time"> <button id="playBtn" type="button">▶ Play</button> <span id="w2count" class="mut" aria-live="polite"></span></div>
+  </aside>
+  <div class="globe-wrap">
+    <div id="mapTip" class="map-tip" hidden role="tooltip"></div>
+    <div id="globe" role="img" aria-label="3D globe with tiled satellite imagery. Click a marker for details."><p class="map-loading mut">Loading globe…</p></div>
+    <div id="map2d" hidden role="application" aria-label="2D world map. Zoom in to street level to see individual cameras."></div>
+    <aside id="details" class="glass details" hidden aria-live="polite"></aside>
+    <p class="map-credit" id="mapCredit">Imagery: Esri, Maxar, Earthstar Geographics, and the GIS User Community.</p>
+    <span id="legWar" class="sr-only">Conflict (reference)</span>
+  </div>
+  <aside class="intel-rail" id="intelRail">
+    <div class="intel-h">
+      <div class="intel-tabs" role="tablist">
+        <button type="button" class="intel-tab on" data-pane="paneNews" role="tab" aria-selected="true">News</button>
+        <button type="button" class="intel-tab" data-pane="paneDis" role="tab" aria-selected="false">Disasters</button>
+        <button type="button" class="intel-tab" data-pane="paneWatch" role="tab" aria-selected="false">Watch</button>
+        <button type="button" class="intel-tab" data-pane="paneMarkets" role="tab" aria-selected="false">Markets</button>
+      </div>
+      <button type="button" class="panel-close" id="intelClose" aria-label="Close intel">✕</button>
+    </div>
+    <div id="paneNews" class="intel-pane" role="tabpanel">
+      <div class="card-h"><h2 id="h-nw">Conflict &amp; War News</h2><span class="tag" id="newsTag">…</span></div>
+      <div id="newsFilter" class="note"></div>
+      <div class="news" id="news"></div>
+    </div>
+    <div id="paneDis" class="intel-pane" role="tabpanel" hidden>
+      <div class="card-h"><h2 id="h-ds">Disasters &amp; Crises</h2><span class="tag" id="gdacsTag">…</span></div>
+      <div class="news" id="disasters"></div>
+    </div>
+    <div id="paneWatch" class="intel-pane" role="tabpanel" hidden>
+      <div class="card-h"><h2 id="h-al">Watch &amp; alerts</h2><button type="button" id="notifBtn">🔕 Enable browser alerts</button></div>
+      <form id="kwForm" class="cmp"><label for="kwIn">Keyword watch</label> <input id="kwIn" placeholder="e.g. Taiwan, oil, Kashmir" maxlength="40"> <button>Add</button></form>
+      <div id="kwList" class="chips"></div><div id="kwHits" class="news"></div>
+      <p class="note">Keywords are checked against loaded GDELT headlines while this tab is open. Stored only in this browser.</p>
+      <div class="cmp"><button id="nearBtn" type="button">📍 Alert me about events near me</button> <label>within <select id="nearKm"><option>250</option><option selected>500</option><option>1000</option></select> km</label></div>
+      <div id="nearOut" class="news"></div>
+      <p class="note">Location is rounded to ~1 km and kept only in this browser; never sent anywhere.</p>
+    </div>
+    <div id="paneMarkets" class="intel-pane" role="tabpanel" hidden>
+      <div class="card-h"><h2 id="h-st">Stock Markets</h2><span class="tag" id="stockTag">DEMO</span></div>
+      <p class="note">Index prices are DEMO unless a Finnhub key is set in config.js. Open/closed status uses real exchange hours. Full charts live on the Markets tab — no ticker on this page.</p>
+      <div class="grid" id="stocks"></div>
+      <div class="card-h"><h2 id="h-cr">Crypto</h2><span><button type="button" id="curBtn">₹ Show INR</button> <span class="tag" id="cryptoTag">…</span></span></div>
+      <p id="cryptoGlobal" class="note"></p><div class="grid" id="crypto"></div>
+    </div>
+  </aside>
 </main>
-<footer>Data: CoinGecko / CoinPaprika · GDELT · GDACS · USGS · NASA EONET · WRI Global Power Plant Database (CC BY 4.0) · OpenStreetMap cables &amp; pipelines (ODbL) · Natural Earth ports · NTAD / USDOT military bases · Wikidata (CC0) · EIA oil-transit chokepoints · TfL / Caltrans / Fintraffic / DelDOT public cameras · public conflict briefing RSS · Natural Earth via world-atlas · map tiles © OpenStreetMap contributors · exchange hours computed locally (approx.). Demo data is always labelled. Not financial advice.</footer>
-<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.33.0/dist/globe.gl.min.js" integrity="sha384-RdB5K07KIDe+WTwJoZTo3f5rEQoDav49ZzIkIHNgojP7V/oBX4Ovo8BhYKwi8rp1" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
+<footer class="dash-foot">Data: CoinGecko / CoinPaprika · GDELT · GDACS · USGS · NASA EONET · WRI Global Power Plant Database (CC BY 4.0) · OpenStreetMap cables &amp; pipelines (ODbL) · Natural Earth ports · NTAD / USDOT military bases · Wikidata (CC0) · EIA oil-transit chokepoints · TfL / Caltrans / Fintraffic / DelDOT public cameras · public conflict briefing RSS · Natural Earth via world-atlas · map tiles: Esri, Maxar, Earthstar Geographics, and the GIS User Community · exchange hours computed locally (approx.). Demo data is always labelled. Not financial advice.</footer>
+<script src="ui.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script src="world2.js"></script>

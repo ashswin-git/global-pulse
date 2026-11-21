@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Global Pulse — Weather</title>
+<meta name="description" content="Global weather globe: animated wind, RainViewer radar and nowcast, clouds, temperature, a 7-day Open-Meteo forecast, live tropical cyclones in every basin, plus earthquakes, volcanoes, wildfires and floods.">
+<meta name="theme-color" content="#05070f">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website"><meta property="og:title" content="Global Pulse — Weather">
+<meta property="og:description" content="Wind, radar, clouds, temperature, tropical cyclones and nature hazards on a zoomable tiled globe.">
+<meta property="og:url" content="https://ashswin-git.github.io/global-pulse/weather.html">
+<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="markets.css">
+</head>
+<body class="dash wx">
+<a class="skip" href="#main">Skip to content</a>
+<div class="bg-glow" aria-hidden="true"></div>
+<header class="topbar">
+  <div class="brand"><span class="pulse-dot" aria-hidden="true"></span> GLOBAL<b>PULSE</b></div>
+  <nav class="tabs" aria-label="Main sections"><a href="./">📊 Markets</a><a href="world.html">🌍 World Pulse</a><a href="weather.html" aria-current="page">🌦️ Weather</a></nav>
+  <div class="controls">
+    <span class="clock" id="clock" aria-live="off">--:--</span>
+    <button type="button" id="tzBtn">Show UTC</button>
+    <button type="button" id="viewBtn">🌍 3D globe</button>
+    <button type="button" class="intel-fab" id="intelBtn" aria-expanded="false" aria-controls="intelRail">Status</button>
+  </div>
+</header>
+<main id="main" class="dash-stage" tabindex="-1">
+  <button type="button" class="panel-fab" id="panelBtn" aria-expanded="false" aria-controls="layerPanel">Layers</button>
+  <aside class="side-panel" id="layerPanel">
+    <div class="side-panel-h"><h3>Layers</h3><button type="button" class="panel-close" id="panelClose" aria-label="Close layers">✕</button></div>
+    <input id="layerSearch" type="search" placeholder="Search layers" autocomplete="off">
+    <div id="layers" class="layers"></div>
+    <div class="w2bar time">
+      <label for="fcSlider">Forecast</label>
+      <input type="range" id="fcSlider" min="0" max="56" step="1" value="0" aria-label="Forecast hour over the next 7 days">
+      <span id="fcLabel" class="wx-clock">Now</span>
+    </div>
+    <div class="wx-bar">
+      <button type="button" id="radarPlay">▶ Radar loop</button>
+      <span id="radarClock" class="wx-clock"></span>
+    </div>
+  </aside>
+  <div class="globe-wrap">
+    <div id="mapTip" class="map-tip" hidden role="tooltip"></div>
+    <div id="wxmap" role="application" aria-label="Weather map. Zoom in to street level. Toggle layers in the panel."></div>
+    <div id="globe" hidden role="img" aria-label="3D weather globe with tiled satellite imagery"><p class="map-loading mut">Loading globe…</p></div>
+    <aside id="details" class="glass details" hidden aria-live="polite"></aside>
+    <p class="map-credit">Imagery: Esri, Maxar, Earthstar Geographics, and the GIS User Community. Radar: RainViewer.</p>
+  </div>
+  <aside class="intel-rail" id="intelRail">
+    <div class="intel-h">
+      <h3>Weather status</h3>
+      <button type="button" class="panel-close" id="intelClose" aria-label="Close status">✕</button>
+    </div>
+    <div class="intel-pane">
+      <p id="wxStatus" class="note"></p>
+      <div id="basinList" class="note"></div>
+    </div>
+  </aside>
+</main>
+<footer class="dash-foot">Weather: <a href="https://www.rainviewer.com/api.html">RainViewer</a> radar (past frames and nowcast) · <a href="https://open-meteo.com/">Open-Meteo</a> forecast (keyless) · tropical cyclones from <a href="https://www.nhc.noaa.gov/">NOAA NHC</a> and <a href="https://www.metoc.navy.mil/jtwc/jtwc.html">JTWC</a>, with <a href="https://www.gdacs.org">GDACS</a> as fallback · earthquakes <a href="https://earthquake.usgs.gov/">USGS</a> · volcanoes, wildfires, floods and hazards from GDACS and <a href="https://eonet.gsfc.nasa.gov/">NASA EONET</a> · map tiles: Esri, Maxar, Earthstar Geographics, and the GIS User Community. Not an official warning service.</footer>
+<script src="ui.js"></script>
+<script src="weather.js"></script>
+</body></html>

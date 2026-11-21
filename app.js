@@ -112,7 +112,7 @@ function renderCrypto(coins) {
   const sym = CUR === 'inr' ? '₹' : '$', d = p => (p < 1 ? 4 : 2);
   $('crypto').innerHTML = coins.map(c => `<div class="tile"><div class="n">${c.img && safeUrl(c.img) ? `<img src="${esc(safeUrl(c.img))}" width="14" height="14" alt="">` : ''} ${esc(c.sym)} · ${esc(c.name)}</div>
     <div class="p">${sym}${fmt(c.price, d(c.price))}</div><div class="${c.ch >= 0 ? 'up' : 'dn'}">${c.ch >= 0 ? '▲' : '▼'} ${fmt(c.ch)}% 24h</div>${spark(c.sp, c.ch >= 0)}</div>`).join('');
-  $('ticker').innerHTML = [...coins, ...coins].map(c => `<span>${esc(c.sym)} ${sym}${fmt(c.price, d(c.price))} <b class="${c.ch >= 0 ? 'up' : 'dn'}">${c.ch >= 0 ? '▲' : '▼'}${fmt(c.ch)}%</b></span>`).join('');
+  if ($('ticker')) $('ticker').innerHTML = [...coins, ...coins].map(c => `<span>${esc(c.sym)} ${sym}${fmt(c.price, d(c.price))} <b class="${c.ch >= 0 ? 'up' : 'dn'}">${c.ch >= 0 ? '▲' : '▼'}${fmt(c.ch)}%</b></span>`).join('');
 }
 async function loadCryptoGlobal() {
   const el = $('cryptoGlobal'); if (!el) return;
@@ -182,7 +182,8 @@ function newsCard(a) {
   const src = a.source || a.domain || '';
   const extra = [src, a.country || a.sourcecountry || '', whenTxt].filter(Boolean).join(' · ');
   const inner = `${esc(a.title)}${a.excerpt ? `<small class="ex">${esc(a.excerpt)}</small>` : ''}<small>${esc(extra)}</small>`;
-  return href ? `<a class="item" href="${esc(href)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="item">${inner}</div>`;
+  const attrs = `class="item" data-title="${esc(a.title || '')}" data-source="${esc(src)}" data-date="${esc(a.date || a.seendate || '')}" data-excerpt="${esc(a.excerpt || '')}"`;
+  return href ? `<a ${attrs} href="${esc(href)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="item">${inner}</div>`;
 }
 function renderNews() {
   let arts = newsArts;
@@ -195,6 +196,7 @@ function renderNews() {
   else if (!newsArts.length && !brief.length) $('news').innerHTML = HOTSPOTS.map(h => `<div class="item">${esc(h.name)}<small>Static reference hotspot (not live news)</small></div>`).join('');
   else if (!arts.length && brief.length) $('news').innerHTML = head;
   else $('news').innerHTML = '<p class="empty">No recent headlines match this marker.</p>';
+  if (window.GPUI) GPUI.bindNewsClicks('news');
 }
 async function loadConflictBrief() {
   try {
@@ -216,7 +218,7 @@ async function loadConflictGeo() {
     const f = (j.features || []).filter(x => x.geometry?.type === 'Point');
     if (!f.length) throw 0;
     conflictPts = f.map(x => { const [lng, lat] = x.geometry.coordinates; const name = String(x.properties?.name || 'Conflict report'); return { lat, lng, label: name + ' (GDELT)', t: Date.parse(x.properties?.date) || null, q: name.split(',')[0], region: regionOf(lat, lng), kind: 'war', count: x.properties?.count }; });
-    $('legWar').textContent = 'Conflict (live GDELT)';
+    if ($('legWar')) $('legWar').textContent = 'Conflict (live GDELT)';
   } catch { conflictPts = HOTSPOTS; }
   updateGlobe();
 }
@@ -256,21 +258,22 @@ function webglOK() { try { const c = document.createElement('canvas'); return !!
 function initGlobe() {
   const el = $('globe');
   if (!window.Globe || !webglOK()) {
-    el.innerHTML = `<div class="fallback"><img src="https://cdn.jsdelivr.net/npm/three-globe@2.41.12/example/img/earth-night.jpg" alt="World map at night"><p>${!window.Globe ? 'The 3D globe library failed to load.' : 'Your browser has WebGL turned off, so the 3D globe cannot run.'} All data panels below still work.</p></div>`;
-    $('rotateBtn').hidden = true; return;
+    el.innerHTML = `<div class="fallback"><p>${!window.Globe ? 'The 3D globe library failed to load.' : 'Your browser has WebGL turned off, so the 3D globe cannot run.'} All data panels still work. Try the 2D map.</p></div>`;
+    if ($('rotateBtn')) $('rotateBtn').hidden = true; return;
   }
   const H = () => el.clientHeight || (isMobile ? 340 : 520), W = () => el.clientWidth || innerWidth - 60;
   globe = Globe()(el)
-    .globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe@2.41.12/example/img/earth-night.jpg')
-    .backgroundColor('rgba(0,0,0,0)').atmosphereColor('#22d3ee').atmosphereAltitude(0.2)
+    .backgroundColor('rgba(0,0,0,0)').atmosphereColor('#22d3ee').atmosphereAltitude(0.16)
     .width(W()).height(H())
     .ringColor(d => t => d.color.replace('1)', `${1 - t})`)).ringMaxRadius(d => d.r).ringPropagationSpeed(2).ringRepeatPeriod(d => d.period)
-    .pointAltitude(0.01).pointRadius(0.4).pointColor(d => d.solid).pointLabel(d => `<b>${esc(d.label)}</b>`)
+    .pointAltitude(0.01).pointRadius(0.4).pointColor(d => d.solid).pointLabel(() => null)
     .onPointClick(d => setFocus(d));
-  if (!isMobile) globe.bumpImageUrl('https://cdn.jsdelivr.net/npm/three-globe@2.41.12/example/img/earth-topology.png');
-  const ctl = globe.controls(); ctl.autoRotate = rotating; ctl.autoRotateSpeed = 0.6;
+  window.globe = globe;
+  if (window.GPUI) GPUI.tuneGlobe(globe);
+  const ctl = globe.controls(); ctl.autoRotate = rotating; ctl.autoRotateSpeed = 0.45;
+  ctl.minDistance = 1.08; ctl.maxDistance = 1000;
   el.addEventListener('pointerenter', () => ctl.autoRotate = false);
-  el.addEventListener('pointerleave', () => ctl.autoRotate = rotating);
+  el.addEventListener('pointerleave', () => ctl.autoRotate = rotating && !document.hidden);
   globe.pointOfView({ lat: 20, lng: 60, altitude: 2.2 });
   new ResizeObserver(() => globe.width(W()).height(H())).observe(el);
   updateGlobe();
@@ -298,7 +301,7 @@ function setFocus(d) {
   FOCUS = d;
   document.querySelectorAll('.tile.hl,.item.hl').forEach(x => x.classList.remove('hl'));
   const panel = $('details');
-  if (!d) { panel.hidden = true; renderNews(); return; }
+  if (!d) { if (window.GPUI) GPUI.stopCam(); panel.hidden = true; renderNews(); return; }
   let body = '';
   const it = d.intel || {}, meta = d.src || {}, srcLine = meta.attribution ? `<p class="mut">${esc(meta.attribution)}</p>` : '';
   const wd = it.wd ? `<p><a href="https://www.wikidata.org/wiki/${encodeURIComponent(it.wd)}" target="_blank" rel="noopener">Wikidata →</a></p>` : '';
@@ -317,11 +320,9 @@ function setFocus(d) {
   else if (d.kind === 'cams') {
     const srcs = (it.src && d.src && d.src.sources && d.src.sources[it.src]) || {};
     const img = safeUrl(it.img), vid = safeUrl(it.vid), stream = safeUrl(it.stream), page = safeUrl(it.page);
-    const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
-    body = `<p>Official public camera${it.c ? ' · ' + esc(it.c) : ''}</p>
-      ${img ? `<p class="cam-shot"><img src="${esc(bust(img))}" alt="Live snapshot: ${esc(d.label)}" referrerpolicy="no-referrer" loading="eager"></p>` : ''}
-      ${vid ? `<p><video src="${esc(vid)}" controls muted playsinline loop preload="metadata"></video></p>` : ''}
-      ${stream && !vid ? `<p><a href="${esc(stream)}" target="_blank" rel="noopener">Open live stream (HLS) →</a></p>` : ''}
+    const kind = (window.GPUI && GPUI.camMediaKind(it)) || ((vid || stream) ? 'Video' : 'Snapshot');
+    body = `<p>Official public camera${it.c ? ' · ' + esc(it.c) : ''} · <span class="live-badge">${kind === 'Video' ? 'VIDEO' : 'LIVE'}</span> <span id="camAgo" class="mut"></span></p>
+      ${stream || vid ? `<p class="cam-shot"><video id="camVideo" controls muted playsinline ${vid ? 'loop' : ''} preload="auto" poster="${esc(img || '')}"></video></p>` : (img ? `<p class="cam-shot"><img id="camStill" alt="Live snapshot: ${esc(d.label)}" referrerpolicy="no-referrer"></p>` : '')}
       ${page ? `<p><a href="${esc(page)}" target="_blank" rel="noopener">Official camera page →</a></p>` : ''}
       <p class="mut">${esc(srcs.name || 'Public agency camera')}. ${esc(srcs.license || '')} ${esc(srcs.terms || 'Official traveler-information camera, not private CCTV.')}</p>`;
   }
@@ -329,6 +330,10 @@ function setFocus(d) {
   const newsNote = ['nuclear','power','cable','pipe','crypto','tech','bases','ports','chokepoints','cams'].includes(d.kind) ? '' : '<p class="mut">News below is filtered to this marker.</p>';
   panel.innerHTML = `<button class="close" onclick="setFocus(null)" aria-label="Close details">✕</button><h3>${esc(d.label)}</h3>${body}${newsNote}`;
   panel.hidden = false;
+  if (d.kind === 'cams') {
+    if (d.lat != null && window.W2 && W2.flyTo) W2.flyTo(d.lat, d.lng, 16);
+    if (window.GPUI) GPUI.mountCam(panel, it, d.label);
+  }
   const card = d.kind === 'exchange' ? $('card-' + d.id) : null;
   if (card) { card.classList.add('hl'); card.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' }); }
   renderNews();
@@ -347,6 +352,7 @@ if (reduceMotion) { rotating = false; $('rotateBtn').textContent = '▶ Rotate';
 
 // ---- Boot (after world2.js has loaded) ----
 addEventListener('DOMContentLoaded', () => {
+if (window.GPUI) { GPUI.boot(); GPUI.bindNewsClicks('news'); GPUI.bindNewsClicks('disasters'); GPUI.bindNewsClicks('kwHits'); }
 tick(); setInterval(tick, 1000);
 initGlobe(); loadStocks(true); loadCrypto(); loadDisasters();
 loadNews().then(() => { loadConflictGeo(); loadConflictBrief(); });

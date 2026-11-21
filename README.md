@@ -1,6 +1,6 @@
 # Global Pulse
 
-**Watch the markets. Watch the world.** A live stock-and-crypto desk plus a 3D intel globe — conflicts, disasters, infrastructure, and official public cameras — all from open, keyless data.
+**Watch the markets. Watch the world.** A live stock-and-crypto desk, a 3D intel globe, and a dedicated weather map — conflicts, infrastructure, official public cameras, wind, radar and tropical cyclones — all from open, keyless data.
 
 [![Live site](https://img.shields.io/website?url=https%3A%2F%2Fashswin-git.github.io%2Fglobal-pulse%2F&up_message=live&down_message=down&label=GitHub%20Pages)](https://ashswin-git.github.io/global-pulse/)
 [![Last commit](https://img.shields.io/github/last-commit/ashswin-git/global-pulse/main)](https://github.com/ashswin-git/global-pulse/commits/main)
@@ -21,6 +21,8 @@
 
 ### Markets
 
+Three tabs share the site: **Markets**, **World Pulse** and **Weather**. Each keeps its own map instance and state. The stock/crypto ticker banner appears on Markets only.
+
 The Markets desk (`index.html`, the default page) is a full symbol workspace built on free [TradingView embed widgets](https://www.tradingview.com/widget-docs/) — no API key, no proxy, no backend.
 
 - **Symbol search** — stocks, indices, crypto, forex and commodities. Type a name or a TradingView ticker (`NASDAQ:NVDA`, `BSE:INFY`, `BINANCE:BTCUSDT`).
@@ -33,10 +35,10 @@ Widget freshness follows TradingView’s licensing: crypto and forex are real-ti
 
 ### World Pulse
 
-World Pulse (`world.html`) is an animated 3D globe ([globe.gl](https://github.com/vasturiano/globe.gl) / three.js) with a Leaflet 2D map fallback for mobile or machines without WebGL. Toggle layers in the panel; your selection is stored in the URL.
+World Pulse (`world.html`) is a full-screen intel dashboard with an animated 3D globe ([globe.gl](https://github.com/vasturiano/globe.gl) / three.js) and a Leaflet 2D map (the default on mobile, or when WebGL is unavailable). The globe is covered with **Esri World Imagery** slippy-map tiles that start coarse and sharpen as you zoom, with `devicePixelRatio` capped at 2, anisotropic filtering and mipmaps. Libraries and intel JSON load only when that view or layer is needed. Toggle layers in the panel; your selection is stored in the URL.
 
 - **Hover tooltips** — move the cursor over any point or route for the name, type, key stats and source, immediately, with no click. Updates are throttled to an animation frame so dense layers stay smooth.
-- **Click popups** — the details panel opens with the full record, source and licence, plus a live image or official stream for cameras.
+- **Click popups** — the details panel opens with the full record, source and licence. Official cameras play **live video** where the agency publishes a stream (HLS via hls.js for Caltrans and DelDOT, looping official TfL MP4 clips refreshed about every 30 seconds). Still-only cameras auto-refresh the snapshot every 15 seconds with a LIVE badge and last-updated time. Tooltips mark Video vs Snapshot; a **Video cameras only** filter is in the layer panel.
 - **Time slider** — filter live events to the last 24 hours or 7 days, with an optional Play animation (disabled when `prefers-reduced-motion` is set).
 - **Shareable URL** — `layers`, `region`, `t`, `at`, `pov` and `view` are written into the query string so a view can be bookmarked or sent on.
 - **Country briefing** — click a country for recent headlines, disasters and quakes, with a link through to its main index on Markets.
@@ -125,11 +127,35 @@ Feeds used (all keyless, no login):
 
 [ACLED](https://acleddata.com/) is not used (it requires registration and an API key). ReliefWeb’s JSON API v2 needs a pre-approved application name, so it is not called.
 
+### Weather
+
+Weather is a **separate tab and page** (`weather.html`), not a set of layers inside World Pulse. It has its own globe/map, its own layer panel and its own URL state.
+
+- **Animated wind particles** — sampled from the [Open-Meteo](https://open-meteo.com/) 7-day forecast on a global grid (keyless).
+- **Precipitation radar** — [RainViewer](https://www.rainviewer.com/api.html) free tiles, including past frames and the nowcast when RainViewer publishes one. A radar loop plays through those frames.
+- **Clouds** — RainViewer infrared satellite when available, otherwise Open-Meteo cloud cover on the same grid.
+- **Temperature** — colour-coded Open-Meteo samples, with hover/click details (temperature, wind, cloud, rain).
+- **Forecast time slider** — the next ~7 days, in hourly steps, from Open-Meteo. A coarse global grid is used so the page stays keyless and light; values are interpolated, not a commercial forecast model view.
+- **Live tropical cyclones, all basins** — Atlantic, Eastern and Central Pacific, Western Pacific, North Indian (Bay of Bengal and the Arabian Sea), South Indian, Australia and the South Pacific. Each storm can show the current position, past track, forecast track and cone. Sources: [NOAA NHC](https://www.nhc.noaa.gov/) (Atlantic and E/C Pacific), [JTWC](https://www.metoc.navy.mil/jtwc/jtwc.html) warning text and KMZ tracks/cones (other basins), [GDACS](https://www.gdacs.org) as a fallback. Off-season basins show as quiet. Refresh with `python3 scripts/fetch-cyclones.py`.
+- **Nature layers** — earthquakes (USGS M4.5+), volcanoes, wildfires, floods, all GDACS disaster alerts, and NASA EONET events. Hover and click for details.
+
+### Deep zoom
+
+The World Pulse and Weather globes, and their 2D maps, zoom from a world view down to **street or city level**, so an individual public camera can be reached clearly. Both the 3D globe and the 2D map use [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) tiles (Esri, Maxar, Earthstar Geographics, and the GIS User Community) up to zoom 19. Low-resolution tiles load first; higher-resolution tiles replace them as you zoom. Markers **cluster when zoomed out** and spread as you zoom in (clustering turns off around zoom 11). Zooming the 3D globe in close automatically switches to the 2D map at that place so you can keep going down to the street.
+
+### Interface
+
+The layer list is a **collapsible side panel** with grouped toggles, colour dots, counts and a search box. A compact top bar and a right-hand intel rail (news, disasters, watch, markets snapshot) keep the map full-screen. On a phone the layer panel is a bottom sheet, closed by default, so it does not cover the globe until you open it. In-app **notification toasts** are dismissible, cap at three, wrap long text and sit out of the way of map controls. Clicking a news item opens a **card/modal** with the title, source, time, summary, an Open link and a close button — it works on a narrow screen.
+
+### Performance
+
+Intel layer files (cables, cameras, power plants, and so on) are fetched only when that layer is turned on, or is already in the URL. Panel counts come from a small `data/intel/index.json`. `globe.gl` is loaded only when a 3D view is opened (mobile stays on the 2D map until you ask for the globe). Leaflet loads only for 2D. The 2D map draws points on a canvas renderer. Rendering and auto-rotation pause when the tab is hidden or idle. A previous single low-resolution globe texture is no longer used.
+
 ## Automatic data refresh
 
-Snapshots under `data/` (GDELT news and points, the RSS conflict briefing, GDACS, USGS earthquakes, NASA EONET, and the official camera list) are meant to be refreshed by a **scheduled GitHub Actions job every 4 hours**, plus manual `workflow_dispatch`. The job commits changed files as `github-actions[bot]` using the default `GITHUB_TOKEN` (`contents: write`). No personal secrets. The site reads those snapshots first if they are less than 8 hours old, and only then falls back to live API calls (which avoids GDELT rate limits). A failed source keeps its previous file and is marked in `data/meta.json`.
+Snapshots under `data/` (GDELT news and points, the RSS conflict briefing, GDACS, USGS earthquakes, NASA EONET, official cameras, and tropical cyclones) are meant to be refreshed by a **scheduled GitHub Actions job every 4 hours**, plus manual `workflow_dispatch`. The job commits changed files as `github-actions[bot]` using the default `GITHUB_TOKEN` (`contents: write`). No personal secrets. The site reads those snapshots first if they are less than 8 hours old, and only then falls back to live API calls (which avoids GDELT rate limits). A failed source keeps its previous file and is marked in `data/meta.json`.
 
-**Status: coming soon.** The workflow file is ready in the project but is not on `main` yet — publishing it needs a git credential with the `workflow` scope. Until it is merged, the live site uses the last committed snapshots and in-browser fallbacks. You can refresh the same files locally with the scripts below.
+**Status: coming soon.** The workflow file is ready in the project but is not on `main` yet — publishing it needs a git credential with the `workflow` scope. Until it is merged, the live site uses the last committed snapshots and in-browser fallbacks. You can refresh the same files locally with the scripts below (including `python3 scripts/fetch-cyclones.py`). The Weather page also talks to RainViewer, Open-Meteo, USGS and EONET live in the browser.
 
 Static intel extracts (cables, plants, pipelines, ports, bases, tech sites, chokepoints) are built once and are not part of the 4-hour refresh.
 
@@ -155,10 +181,13 @@ All default sources are free and keyless. Bundled extracts are slim, redistribut
 | Strategic chokepoints (list) | [U.S. EIA World Oil Transit Chokepoints](https://www.eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints) | US government work, public domain | `data/intel/chokepoints.json` (8 EIA + 4 labelled extras) |
 | Live public cameras | TfL JamCams, Caltrans CWWP2, Fintraffic Digitraffic, Delaware DOT TMC | OGL / Powered by TfL Open Data; Caltrans public traveler info; Fintraffic CC BY 4.0; DelDOT public TMC | `data/intel/cameras.json` (1,273) |
 | Country shapes | [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth) | Public domain / ISC | 3D polygons and 2D countries |
-| Map tiles (2D view) | [OpenStreetMap](https://www.openstreetmap.org/copyright) | ODbL 1.0 | Leaflet fallback |
+| Map tiles (3D globe and 2D map) | [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) | Esri, Maxar, Earthstar Geographics, and the GIS User Community | Slippy tiles, zoom 0–19; low-res first, then sharper on zoom |
+| Tropical cyclones | [NOAA NHC](https://www.nhc.noaa.gov/CurrentStorms.json) (Atlantic, E/C Pacific); [JTWC](https://www.metoc.navy.mil/jtwc/jtwc.html) RSS, warning text and KMZ (W Pacific, North Indian, South Indian, Australia, South Pacific); [GDACS](https://www.gdacs.org) TC list as fallback | Agency terms (keyless) | `data/cyclones.json` (refresh with `scripts/fetch-cyclones.py`) |
+| Radar / nowcast | [RainViewer](https://www.rainviewer.com/api.html) public weather-maps API and tiles | RainViewer terms (free, keyless) | Live tiles on the Weather map |
+| Forecast, wind, temperature, cloud cover | [Open-Meteo](https://open-meteo.com/) forecast API | Open-Meteo attribution (keyless) | Sampled global grid, 7-day hourly |
 | Optional index quotes | [Finnhub](https://finnhub.io) (only if you add your own free key in `config.js`) | Finnhub terms | Otherwise index tiles are clearly labelled **DEMO** |
 
-Country shapes and map tiles © OpenStreetMap contributors where applicable. Camera stills remain the property of the publishing agency; this project only links to or displays official public feeds, with the required attribution.
+Country shapes © Natural Earth via world-atlas. Imagery tiles © Esri, Maxar, Earthstar Geographics, and the GIS User Community. OpenStreetMap extracts (cables, pipelines) remain © OSM contributors (ODbL). Camera stills and streams remain the property of the publishing agency; this project only links to or displays official public feeds, with the required attribution.
 
 ## Built with
 
@@ -166,11 +195,14 @@ Only tools and libraries this project actually uses:
 
 - **Front end** — plain HTML, CSS and vanilla JavaScript. No framework, no bundler, no build step.
 - **[TradingView embed widgets](https://www.tradingview.com/widget-docs/)** — all Markets charts, quotes, screeners and news.
-- **[globe.gl](https://github.com/vasturiano/globe.gl) 2.33** (MIT; three.js) — 3D globe, hexbins, paths and arcs, loaded from jsDelivr with SRI.
-- **[Leaflet](https://leafletjs.com) 1.9.4** (BSD-2-Clause) + **[Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) 1.5.3** (MIT) — 2D map fallback, OSM tiles.
+- **[globe.gl](https://github.com/vasturiano/globe.gl) 2.46.2** (MIT; three.js) — 3D globe with a slippy-map tile engine, hexbins, paths and arcs, loaded from jsDelivr with SRI when a 3D view is opened.
+- **[Leaflet](https://leafletjs.com) 1.9.4** (BSD-2-Clause) + **[Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) 1.5.3** (MIT) — 2D map, loaded on demand.
+- **[hls.js](https://github.com/video-dev/hls.js) 1.5.17** (Apache-2.0) — plays official Caltrans and DelDOT HLS camera streams, loaded only when a stream camera is opened.
 - **[topojson-client](https://github.com/topojson/topojson-client)** (ISC) + **[world-atlas](https://github.com/topojson/world-atlas)** (ISC) — country shapes.
+- **[RainViewer](https://www.rainviewer.com/api.html)** — precipitation radar and nowcast tiles on the Weather map.
+- **[Open-Meteo](https://open-meteo.com/)** — keyless 7-day forecast grid (wind, temperature, clouds, precipitation).
 - **Hosting** — GitHub Pages, served statically from `main`.
-- **Data scripts** — Node.js 20 (`scripts/fetch-data.mjs`, `scripts/fetch-cameras.mjs`, built-in `fetch`, no npm dependencies) and Python 3 (`scripts/build-intel.py`).
+- **Data scripts** — Node.js 20 (`scripts/fetch-data.mjs`, `scripts/fetch-cameras.mjs`, built-in `fetch`, no npm dependencies) and Python 3 (`scripts/build-intel.py`, `scripts/fetch-cyclones.py`).
 
 Ideas only — **no code copied** — from [koala73/worldmonitor](https://github.com/koala73/worldmonitor), [hipcityreg/situation-monitor](https://github.com/hipcityreg/situation-monitor), and similar open dashboards. [Open-Dev-Society/OpenStock](https://github.com/Open-Dev-Society/OpenStock) inspired the Markets widget layout and the “chart Indian stocks through BSE” pattern (AGPL; no code copied). [tradingview/lightweight-charts](https://github.com/tradingview/lightweight-charts) was evaluated but needs a first-party OHLC feed, which no keyless browser-accessible source provides.
 
@@ -180,8 +212,9 @@ Ideas only — **no code copied** — from [koala73/worldmonitor](https://github
 git clone https://github.com/ashswin-git/global-pulse
 cd global-pulse
 python3 -m http.server 8000
-# open http://localhost:8000          — Markets
-# open http://localhost:8000/world.html — World Pulse
+# open http://localhost:8000            — Markets
+# open http://localhost:8000/world.html   — World Pulse
+# open http://localhost:8000/weather.html — Weather
 ```
 
 A simple static server is enough (Python, `npx serve`, Caddy, …). Opening the files as `file://` will block some fetches.
@@ -205,8 +238,9 @@ Verified 2026-10-29 against free TradingView embeds. These symbols are **not** a
 Refresh the live snapshots (news, conflict briefing, disasters, quakes, hazards, cameras):
 
 ```bash
-node scripts/fetch-data.mjs      # GDELT, RSS briefing, GDACS, USGS, EONET → data/*.json
-node scripts/fetch-cameras.mjs   # official camera inventories → data/intel/cameras.json
+node scripts/fetch-data.mjs         # GDELT, RSS briefing, GDACS, USGS, EONET → data/*.json
+node scripts/fetch-cameras.mjs      # official camera inventories → data/intel/cameras.json
+python3 scripts/fetch-cyclones.py   # NHC + JTWC + GDACS tropical cyclones → data/cyclones.json
 ```
 
 GDELT calls are spaced at least 7 seconds apart. If a source fails, its previous file is kept and `data/meta.json` records the error. The official camera script also keeps the previous items for a source that fails mid-run.
@@ -225,16 +259,20 @@ python3 scripts/build-intel.py   # writes data/intel/*.json and SOURCES.md
 global-pulse/
 ├── index.html              Markets desk
 ├── world.html              World Pulse globe / 2D map
+├── weather.html            Weather map (own globe / map / layers)
 ├── app.js, world2.js       World Pulse logic and layers
+├── weather.js              Weather map, radar, forecast, cyclones
+├── ui.js                   Shared loaders, tiled-globe helpers, toasts, article modal
 ├── markets.js, markets.css Markets desk
 ├── style.css, sw.js        Shared UI and a small service-worker cache
 ├── config.js               Optional Finnhub key (empty by default)
 ├── data/
-│   ├── conflict.json, gdacs.json, quakes.json, eonet.json, meta.json
+│   ├── conflict.json, gdacs.json, quakes.json, eonet.json, cyclones.json, meta.json
 │   └── intel/              Static + camera extracts and SOURCES.md
 ├── scripts/
 │   ├── fetch-data.mjs      News, briefing, disasters, hazards
 │   ├── fetch-cameras.mjs   Official public cameras
+│   ├── fetch-cyclones.py   All-basin tropical cyclones (NHC, JTWC, GDACS)
 │   └── build-intel.py      One-shot intel-layer builder
 └── docs/screenshots/       README images
 ```
