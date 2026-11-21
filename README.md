@@ -5,7 +5,7 @@
 > **🤖 Fully built by Grok Bot.** Idea and direction by [@ashswin-git](https://github.com/ashswin-git); code reviews and research help by my other Grok Bot assistants (Lll, Aproval and COA). All code was written by Grok Bot.
 
 - 📊 **Markets** (`/`): search any stock, index, crypto, forex or commodity → interactive candlestick chart (1D/1W/1M/1Y/5Y/All), quote header, key stats, company profile, technicals, related news, a saved watchlist, top gainers/losers (US, India, UK, Japan, crypto heatmap) and a market overview.
-- 🌍 **World Pulse** (`/world.html`): 3D globe of exchanges, conflicts and disasters, crypto prices and crisis feeds.
+- 🌍 **World Pulse** (`/world.html`): 3D globe of exchanges, conflicts, disasters, undersea cables, power plants, ports, pipelines, military bases, tech sites and strategic chokepoints, plus live crypto prices.
 
 🔗 **Live:** https://ashswin-git.github.io/global-pulse/
 
@@ -16,9 +16,10 @@
 ## ✨ Features
 - **3D animated globe** (globe.gl / three.js): pulsing rings for open stock exchanges, conflict hotspots and live disaster alerts; auto-rotates, drag to explore.
 - **Stock markets**: 12 major indices (S&P 500, Nasdaq, FTSE, DAX, Nifty 50, Nikkei, Hang Seng…). **Open/closed status computed live from real exchange hours** in each exchange's time zone.
-- **Crypto**: top 12 coins by market cap, live prices, 24h change, 7-day sparklines and a scrolling ticker tape (refresh every 60s).
+- **Crypto**: top 12 coins by market cap, live prices, 24h change, 7-day sparklines, global market-cap / BTC-ETH dominance, a scrolling ticker tape (refresh every 60s), and a map layer of exchange headquarters from Wikidata.
 - **Conflict & war news**: latest English headlines from GDELT (last 24h).
 - **Disasters & crises**: Orange/Red alerts (cyclones, earthquakes, floods, volcanoes, wildfires, droughts) from GDACS, also plotted on the globe.
+- **Intel map layers** (togglable, click for details): undersea internet cables, nuclear and major (≥1 GW) power plants, oil and gas pipelines, major ports, military bases, data centers / tech hubs / AI labs, crypto exchange headquarters, and strategic maritime chokepoints.
 - Dark glassmorphism UI, smooth entrance animations, fully responsive (mobile friendly).
 - Zero build step, zero backend, zero required API keys.
 
@@ -48,6 +49,14 @@ All Markets widgets are the free, keyless [TradingView embeddable widgets](https
 | Exchange open/closed | Computed in-browser from official trading hours | ✅ Real |
 | Index prices | Built-in **DEMO** numbers (clearly labelled) | ⚠️ Demo unless you add a key |
 | Conflict points on globe | GDELT GEO 2.0 (24h), fallback static reference list | ✅ Live when GDELT responds |
+| Undersea internet cables | OpenStreetMap named submarine communication cables (ODbL) | ✅ Static extract; coverage is incomplete vs commercial maps |
+| Nuclear & major power plants | [WRI Global Power Plant Database](https://github.com/wri/global-power-plant-database) v1.3.0 (CC BY 4.0) | ✅ Static; last WRI release 2021, ≥1 GW for non-nuclear |
+| Oil & gas pipelines | OpenStreetMap named oil/gas pipelines (ODbL) | ✅ Static extract, simplified routes |
+| Major ports | [Natural Earth](https://www.naturalearthdata.com/downloads/10m-cultural-vectors/ports/) 10m ports (public domain) | ✅ Static; scalerank ≤ 5 |
+| Military bases | USDOT/BTS [NTAD](https://geodata.bts.gov/) Military Bases (US government work) + notable Wikidata bases (CC0) | ✅ Static; not a complete inventory |
+| Tech hubs, data centers, AI labs | Wikidata (CC0) | ✅ Static notable-item sample |
+| Crypto exchanges (map) | Wikidata headquarters / registered locations (CC0) | ✅ Static; live prices stay on CoinGecko |
+| Strategic chokepoints | [EIA World Oil Transit Chokepoints](https://www.eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints) + Wikidata coordinates (CC0) | ✅ Static; 8 EIA + 4 labelled extras |
 
 ### Optional live stock prices
 Get a free key at [finnhub.io](https://finnhub.io) and put it in `config.js`:
@@ -79,7 +88,7 @@ LIVE / CACHED / ERROR tags with last-updated time, localStorage caching, fetch t
 
 ## 🌍 World Pulse v2 (layers, time, alerts)
 - **Hourly data cron** (`.github/workflows/data.yml` → `scripts/fetch-data.mjs`) writes `data/news.json` (GDELT DOC 2.0 artlist, 7d), `data/points.json` (GDELT DOC `mode=pointdata`), `data/gdacs.json`, `data/quakes.json` (USGS M4.5+ week), `data/eonet.json` (NASA EONET v3), `data/meta.json`. GDELT calls are ≥7s apart. The site reads these first (if <3h old) and only falls back to live API calls, which avoids GDELT 429s. A failed source keeps its previous file and is marked in `meta.json`.
-- **Layers** (checkboxes, saved in URL): conflict news points, conflict heat hexbin, earthquakes, GDACS disasters, EONET hazards, exchanges.
+- **Layers** (checkboxes, saved in URL): conflict news points, conflict heat hexbin, earthquakes, GDACS disasters, EONET hazards, exchanges, plus intel layers for undersea cables, nuclear and major power plants, pipelines, ports, military bases, tech sites, crypto exchanges and chokepoints. New intel layers are off by default; turn them on in the panel.
 - **Time slider** (24h / 7d) with ▶ Play (requestAnimationFrame; disabled under reduced motion).
 - **Country briefing**: click any country (world-atlas / Natural Earth) → GDELT headlines, source chips, disasters/quakes, link to its main index on Markets.
 - **Keyword watch** (localStorage) with browser Notification alerts; **near-me** alert using browser geolocation (rounded, stored only locally).
@@ -119,9 +128,9 @@ Libraries used via CDN (with SRI): [globe.gl](https://github.com/vasturiano/glob
 
 **Data sources (all keyless):**
 - Markets: TradingView widgets (crypto and forex real-time; US/global stocks delayed ~15 min; India via BSE end-of-day), plus Binance public ticker for crypto quotes
-- World: GDELT DOC 2.0 (conflict news and points, rate-limited), GDACS (disasters), USGS (M4.5+ earthquakes), NASA EONET (natural hazards), CoinGecko with CoinPaprika fallback (crypto)
+- World: GDELT DOC 2.0 (conflict news and points, rate-limited), GDACS (disasters), USGS (M4.5+ earthquakes), NASA EONET (natural hazards), CoinGecko with CoinPaprika fallback (crypto prices and global market stats), OpenStreetMap (ODbL; undersea cables and oil/gas pipelines), WRI Global Power Plant Database v1.3.0 (CC BY 4.0), Natural Earth ports (public domain), USDOT/BTS NTAD military bases (US government work), Wikidata (CC0; tech sites, additional bases, crypto-exchange locations, chokepoint coordinates), U.S. EIA World Oil Transit Chokepoints (public domain list)
 - Optional: Finnhub (only if you add your own free key; index tiles are labelled DEMO otherwise)
 
-**Data script:** Node.js `scripts/fetch-data.mjs` (built-in `fetch`, no dependencies) writes snapshots to `data/*.json`.
+**Data script:** Node.js `scripts/fetch-data.mjs` (built-in `fetch`, no dependencies) writes snapshots to `data/*.json`. Intel layers are built once with `python3 scripts/build-intel.py` into `data/intel/*.json` (see `data/intel/SOURCES.md`).
 
 **Hosting:** GitHub Pages (static, from `main`).

@@ -114,12 +114,27 @@ function renderCrypto(coins) {
     <div class="p">${sym}${fmt(c.price, d(c.price))}</div><div class="${c.ch >= 0 ? 'up' : 'dn'}">${c.ch >= 0 ? '▲' : '▼'} ${fmt(c.ch)}% 24h</div>${spark(c.sp, c.ch >= 0)}</div>`).join('');
   $('ticker').innerHTML = [...coins, ...coins].map(c => `<span>${esc(c.sym)} ${sym}${fmt(c.price, d(c.price))} <b class="${c.ch >= 0 ? 'up' : 'dn'}">${c.ch >= 0 ? '▲' : '▼'}${fmt(c.ch)}%</b></span>`).join('');
 }
+async function loadCryptoGlobal() {
+  const el = $('cryptoGlobal'); if (!el) return;
+  const sym = CUR === 'inr' ? '₹' : '$';
+  try {
+    const d = (await (await fetchT('https://api.coingecko.com/api/v3/global')).json()).data;
+    const cap = d.total_market_cap?.[CUR] ?? d.total_market_cap?.usd;
+    const ch = d.market_cap_change_percentage_24h_usd, btc = d.market_cap_percentage?.btc, eth = d.market_cap_percentage?.eth;
+    el.innerHTML = `Global market cap ${sym}${fmt(cap, 0)} · 24h <span class="${ch >= 0 ? 'up' : 'dn'}">${ch >= 0 ? '▲' : '▼'} ${fmt(ch)}%</span> · BTC dominance ${fmt(btc, 1)}% · ETH ${fmt(eth, 1)}% <span class="mut">(CoinGecko)</span>`;
+    return;
+  } catch {}
+  try {
+    const d = await (await fetchT('https://api.coinpaprika.com/v1/global')).json();
+    el.innerHTML = `Market cap $${fmt(d.market_cap_usd, 0)} · BTC dominance ${fmt(d.bitcoin_dominance_percentage, 1)}% <span class="mut">(CoinPaprika, USD)</span>`;
+  } catch { el.textContent = ''; }
+}
 async function loadCrypto() {
   for (const [src, fn] of [['CoinGecko', cryptoCoinGecko], ['CoinPaprika', cryptoPaprika]]) {
-    try { const coins = await fn(); if (!coins.length) throw 0; cache.set('crypto-' + CUR, { src, coins }); renderCrypto(coins); tag('cryptoTag', 'live', src, Date.now()); return; } catch {}
+    try { const coins = await fn(); if (!coins.length) throw 0; cache.set('crypto-' + CUR, { src, coins }); renderCrypto(coins); tag('cryptoTag', 'live', src, Date.now()); loadCryptoGlobal(); return; } catch {}
   }
   const c = cache.get('crypto-' + CUR);
-  if (c) { renderCrypto(c.data.coins); tag('cryptoTag', 'cached', c.data.src, c.t, 'retrying'); }
+  if (c) { renderCrypto(c.data.coins); tag('cryptoTag', 'cached', c.data.src, c.t, 'retrying'); loadCryptoGlobal(); }
   else { tag('cryptoTag', 'error', '', 0, 'retrying in 60s'); $('crypto').innerHTML = '<p class="empty">Crypto sources unreachable. <button onclick="loadCrypto()">Retry now</button></p>'; }
 }
 
@@ -161,8 +176,9 @@ async function loadNews() {
 }
 function renderNews() {
   let arts = newsArts;
-  if (FOCUS) { const words = (FOCUS.q || FOCUS.label || '').toLowerCase().split(/[\s/–-]+/).filter(w => w.length > 3); arts = arts.filter(a => words.some(w => a.title.toLowerCase().includes(w))); }
-  $('newsFilter').innerHTML = FOCUS ? `Filtered: <b>${esc(FOCUS.label)}</b> <button onclick="setFocus(null)">Clear</button>` : '';
+  const intelFocus = FOCUS && ['nuclear','power','cable','pipe','crypto','tech','bases','ports','chokepoints'].includes(FOCUS.kind);
+  if (FOCUS && !intelFocus) { const words = (FOCUS.q || FOCUS.label || '').toLowerCase().split(/[\s/–-]+/).filter(w => w.length > 3); arts = arts.filter(a => words.some(w => a.title.toLowerCase().includes(w))); }
+  $('newsFilter').innerHTML = FOCUS && !intelFocus ? `Filtered: <b>${esc(FOCUS.label)}</b> <button onclick="setFocus(null)">Clear</button>` : '';
   if (arts.length) $('news').innerHTML = arts.slice(0, 30).map(a => `<a class="item" href="${esc(safeUrl(a.url))}" target="_blank" rel="noopener">${esc(a.title)}<small>${esc(a.domain)} · ${esc(a.sourcecountry || '')}</small></a>`).join('');
   else if (!newsArts.length) $('news').innerHTML = HOTSPOTS.map(h => `<div class="item">${esc(h.name)}<small>Static reference hotspot (not live news)</small></div>`).join('');
   else $('news').innerHTML = '<p class="empty">No recent headlines match this marker.</p>';
@@ -259,11 +275,23 @@ function setFocus(d) {
   const panel = $('details');
   if (!d) { panel.hidden = true; renderNews(); return; }
   let body = '';
+  const it = d.intel || {}, meta = d.src || {}, srcLine = meta.attribution ? `<p class="mut">${esc(meta.attribution)}</p>` : '';
+  const wd = it.wd ? `<p><a href="https://www.wikidata.org/wiki/${encodeURIComponent(it.wd)}" target="_blank" rel="noopener">Wikidata →</a></p>` : '';
+  const ext = u => { const s = safeUrl(u); return s ? `<p><a href="${esc(s)}" target="_blank" rel="noopener">More →</a></p>` : ''; };
   if (d.kind === 'exchange') { const s = status(d); body = `<p>${esc(d.idx)}</p><p>Status: <b>${ST_LABEL[s]}</b> (approx.)</p><p>Hours: ${d.o}–${d.c} ${esc(d.tz)}${d.lunch ? ` · lunch ${d.lunch[0]}–${d.lunch[1]}` : ''}</p>`; }
   else if (d.kind === 'dis') { const p = d.p || {}; body = `<p>${esc(p.description || '')}</p><p>Alert: <b>${esc(p.alertlevel)}</b> · ${esc(p.country || '')}</p><p>Since ${esc((p.fromdate || '').slice(0, 10))}</p>`; }
   else if (d.kind === 'quake' || d.kind === 'eonet') body = `<p>${d.kind === 'quake' ? 'Earthquake (USGS)' : 'Natural hazard (NASA EONET)'}${d.t ? ' · ' + esc(new Date(d.t).toLocaleString()) : ''}</p>${safeUrl(d.url) ? `<p><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">Source details →</a></p>` : ''}`;
+  else if (d.kind === 'nuclear' || d.kind === 'power') body = `<p>${d.kind === 'nuclear' ? 'Nuclear power plant' : 'Major power plant'} · ${esc(it.fuel || '')} · ${fmt(it.mw || 0, 0)} MW</p><p>${esc(it.c || '')}${it.own ? ' · ' + esc(it.own) : ''}${it.yr ? ' · commissioned ' + it.yr : ''}</p><p class="mut">WRI Global Power Plant Database v1.3.0 (2021), CC BY 4.0. Coverage may be outdated.</p>`;
+  else if (d.kind === 'cable') body = `<p>Submarine communication cable${it.cat ? ' · ' + esc(it.cat.replaceAll('_', ' ')) : ''}</p>${it.op ? `<p>Operator: ${esc(it.op)}</p>` : ''}${it.km ? `<p>Mapped length (simplified): ${fmt(it.km, 0)} km</p>` : ''}<p class="mut">OpenStreetMap, ODbL. Routes are as mapped and may be approximate; coverage is incomplete.</p>${it.wp && String(it.wp).startsWith('http') ? ext(it.wp) : wd}`;
+  else if (d.kind === 'pipe') body = `<p>Oil/gas pipeline${it.fuel ? ' · ' + esc(it.fuel) : ''}</p>${it.op ? `<p>Operator: ${esc(it.op)}</p>` : ''}${it.km ? `<p>Mapped length (simplified): ${fmt(it.km, 0)} km</p>` : ''}<p class="mut">OpenStreetMap, ODbL. Routes can be approximate. Not a surveyed right of way.</p>${wd}`;
+  else if (d.kind === 'ports') body = `<p>Major port${it.rank != null ? ' · Natural Earth scalerank ' + esc(it.rank) : ''}</p>${srcLine}${ext(it.web)}`;
+  else if (d.kind === 'bases') body = `<p>${esc(it.typ || 'Military installation')}${it.arm ? ' · ' + esc(it.arm) : ''}</p><p>${esc(it.c || '')}${it.src ? ' · ' + esc(it.src) : ''}</p>${srcLine}${wd}`;
+  else if (d.kind === 'tech') body = `<p>${esc(it.typ || 'Tech site')}</p><p>${esc(it.c || '')}${it.op ? ' · ' + esc(it.op) : ''}</p>${srcLine}${wd}`;
+  else if (d.kind === 'crypto') body = `<p>Cryptocurrency exchange headquarters / registered location (Wikidata).</p><p>${esc(it.c || '')}</p>${srcLine}${ext(it.url)}${wd}`;
+  else if (d.kind === 'chokepoints') body = `<p>${esc(it.typ || 'Strategic chokepoint')}</p><p>${esc(it.note || '')}</p><p class="mut">${esc(it.src || '')}. Coordinates from Wikidata (CC0).</p>${wd}`;
   else body = `<p>${d.ref ? 'Reference hotspot (static list, not live).' : 'Location mentioned in conflict reporting over the last 24h (GDELT).'}</p>${d.count ? `<p>Mentions: ${esc(d.count)}</p>` : ''}`;
-  panel.innerHTML = `<button class="close" onclick="setFocus(null)" aria-label="Close details">✕</button><h3>${esc(d.label)}</h3>${body}<p class="mut">News below is filtered to this marker.</p>`;
+  const newsNote = ['nuclear','power','cable','pipe','crypto','tech','bases','ports','chokepoints'].includes(d.kind) ? '' : '<p class="mut">News below is filtered to this marker.</p>';
+  panel.innerHTML = `<button class="close" onclick="setFocus(null)" aria-label="Close details">✕</button><h3>${esc(d.label)}</h3>${body}${newsNote}`;
   panel.hidden = false;
   const card = d.kind === 'exchange' ? $('card-' + d.id) : null;
   if (card) { card.classList.add('hl'); card.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' }); }

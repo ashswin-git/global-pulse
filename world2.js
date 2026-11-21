@@ -1,7 +1,13 @@
 // World Pulse v2: layers, time slider, country panel, keyword/near-me alerts, arcs, URL state, 2D fallback.
 // Ideas (not code) inspired by worldmonitor, situation-monitor, globalthreatmap, LiveActionMap, OSINT-War-Room; see README credits.
 const W2 = (() => {
-  const LAYERS = { news: 'Conflict news points', heat: 'Conflict heat (hexbin)', quakes: 'Earthquakes M4.5+ (USGS)', dis: 'Disasters (GDACS)', eonet: 'Hazards (NASA EONET)', ex: 'Stock exchanges' };
+  const LAYER_GROUPS = [
+    ['Live events', { news: 'Conflict news points', heat: 'Conflict heat (hexbin)', quakes: 'Earthquakes M4.5+ (USGS)', dis: 'Disasters (GDACS)', eonet: 'Hazards (NASA EONET)' }],
+    ['Markets', { ex: 'Stock exchanges', crypto: 'Crypto exchanges' }],
+    ['Infrastructure', { cables: 'Undersea internet cables', nuclear: 'Nuclear power plants', power: 'Major power plants (1 GW+)', pipes: 'Oil & gas pipelines', ports: 'Major ports' }],
+    ['Intel', { bases: 'Military bases', tech: 'Data centers, hubs & AI labs', chokepoints: 'Strategic chokepoints' }],
+  ];
+  const LAYERS = Object.assign({}, ...LAYER_GROUPS.map(([, o]) => o));
   const url = new URLSearchParams(location.search);
   const st = {
     layers: new Set((url.get('layers') || 'news,heat,quakes,dis,eonet,ex').split(',').filter(k => LAYERS[k])),
@@ -9,7 +15,9 @@ const W2 = (() => {
   };
   st.pos = Math.min(+url.get('at') || st.win, st.win);
   const extra = { quakes: [], eonet: [] };
-  let countries = [], leafletMap = null, leafletLayer = null, playing = false, raf = 0;
+  const INTEL = { cables: [], nuclear: [], power: [], crypto: [], tech: [], bases: [], ports: [], pipes: [], chokepoints: [] };
+  const INTEL_FILE = { cables: 'cables', nuclear: 'nuclear', power: 'power', crypto: 'crypto-exchanges', tech: 'tech', bases: 'bases', ports: 'ports', pipes: 'pipelines', chokepoints: 'chokepoints' };
+  let countries = [], leafletMap = null, leafletLayer = null, leafletLines = null, playing = false, raf = 0;
 
   function saveUrl() {
     const q = new URLSearchParams();
@@ -31,9 +39,38 @@ const W2 = (() => {
     extra.eonet = (k?.features || []).map(f => ({ lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0], label: `${f.properties.title} (${f.properties.cat || 'hazard'})`, kind: 'eonet', t: Date.parse(f.properties.date), url: f.properties.url, region: regionOf(f.geometry.coordinates[1], f.geometry.coordinates[0]) }));
     render(); checkNearMe();
   }
+  async function loadIntel() {
+    await Promise.all(Object.entries(INTEL_FILE).map(async ([k, file]) => {
+      try {
+        const d = await (await fetchT('data/intel/' + file + '.json')).json();
+        INTEL[k] = d.items || [];
+        INTEL._meta = INTEL._meta || {};
+        INTEL._meta[k] = d.meta;
+      } catch { INTEL[k] = []; }
+    }));
+    render();
+  }
+  function intelPts(key, kind) {
+    return (INTEL[key] || []).map(it => ({
+      lat: it.lat, lng: it.lng, label: it.n, kind, k: kind, intel: it,
+      region: regionOf(it.lat, it.lng), src: INTEL._meta?.[key],
+    }));
+  }
+  function intelPaths(key, kind) {
+    if (!st.layers.has(key)) return [];
+    const out = [];
+    for (const it of INTEL[key] || []) {
+      for (const line of it.lines || []) {
+        if (line.length < 2) continue;
+        out.push({ coords: line, label: it.n, kind, k: kind, intel: it, src: INTEL._meta?.[key] });
+      }
+    }
+    return out;
+  }
 
   // ---- render (replaces app.js updateGlobe) ----
-  const COL = { open: '#22d3ee', lunch: '#67e8f9', closed: '#64748b', holiday: '#64748b', war: '#f43f5e', dis: '#f59e0b', quake: '#a78bfa', eonet: '#34d399' };
+  const COL = { open: '#22d3ee', lunch: '#67e8f9', closed: '#64748b', holiday: '#64748b', war: '#f43f5e', dis: '#f59e0b', quake: '#a78bfa', eonet: '#34d399', cable: '#7dd3fc', nuclear: '#f472b6', power: '#fbbf24', crypto: '#fde047', tech: '#818cf8', bases: '#a3e635', ports: '#2dd4bf', pipe: '#fb923c', chokepoints: '#fda4af' };
+  const STATIC_KIND = new Set(['exchange', 'nuclear', 'power', 'crypto', 'tech', 'bases', 'ports', 'chokepoints', 'cable', 'pipe']);
   function visible() {
     const L = st.layers, reg = p => REGION === 'All' || p.region === REGION, out = [];
     if (L.has('ex')) EXCHANGES.forEach(e => { const s = status(e); out.push({ ...e, label: `${e.ex} — ${ST_LABEL[s].slice(2)}`, st: s, k: s }); });
@@ -41,7 +78,14 @@ const W2 = (() => {
     if (L.has('dis')) disasterPts.forEach(d => out.push({ ...d, k: 'dis' }));
     if (L.has('quakes')) extra.quakes.forEach(d => out.push({ ...d, k: 'quake' }));
     if (L.has('eonet')) extra.eonet.forEach(d => out.push({ ...d, k: 'eonet' }));
-    return out.filter(p => reg(p) && (p.kind === 'exchange' || inTime(p.t)));
+    if (L.has('nuclear')) intelPts('nuclear', 'nuclear').forEach(d => out.push(d));
+    if (L.has('power')) intelPts('power', 'power').forEach(d => out.push(d));
+    if (L.has('crypto')) intelPts('crypto', 'crypto').forEach(d => out.push(d));
+    if (L.has('tech')) intelPts('tech', 'tech').forEach(d => out.push(d));
+    if (L.has('bases')) intelPts('bases', 'bases').forEach(d => out.push(d));
+    if (L.has('ports')) intelPts('ports', 'ports').forEach(d => out.push(d));
+    if (L.has('chokepoints')) intelPts('chokepoints', 'chokepoints').forEach(d => out.push(d));
+    return out.filter(p => reg(p) && (STATIC_KIND.has(p.kind) || inTime(p.t)));
   }
   function arcs(pts) {
     if (reduceMotion) return [];
@@ -50,14 +94,18 @@ const W2 = (() => {
   }
   function render() {
     const pts = visible();
-    $('w2count').textContent = `${pts.length} markers · window ${st.win === 168 ? '7 days' : '24 hours'}${st.pos < st.win ? ` up to ${new Date(Date.now() - (st.win - st.pos) * 3600e3).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}`;
-    if (leafletMap) return render2d(pts);
+    const paths = [...intelPaths('cables', 'cable'), ...intelPaths('pipes', 'pipe')];
+    $('w2count').textContent = `${pts.length} markers${paths.length ? ` · ${paths.length} routes` : ''} · window ${st.win === 168 ? '7 days' : '24 hours'}${st.pos < st.win ? ` up to ${new Date(Date.now() - (st.win - st.pos) * 3600e3).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}`;
+    if (leafletMap) return render2d(pts, paths);
     if (!globe) return;
-    const dots = pts.map(p => ({ ...p, solid: COL[p.k], color: hexA(COL[p.k]), r: p.k === 'war' ? 4 : p.k === 'quake' ? Math.max(1.5, (p.mag - 4) * 1.6) : p.k === 'open' ? 4 : 2.5, period: p.k === 'open' ? 1200 : 1600, ring: !['closed', 'holiday', 'eonet'].includes(p.k) }));
+    const R = { war: 4, open: 4, chokepoints: 5, nuclear: 3, crypto: 3, ports: 2.8, tech: 2.6, bases: 2.2, power: 1.8 };
+    const RING = new Set(['open', 'lunch', 'war', 'dis', 'quake', 'chokepoints', 'nuclear']);
+    const dots = pts.map(p => ({ ...p, solid: COL[p.k] || '#94a3b8', color: hexA(COL[p.k] || '#94a3b8'), r: p.k === 'quake' ? Math.max(1.5, (p.mag - 4) * 1.6) : (R[p.k] || 2.5), period: p.k === 'open' || p.k === 'chokepoints' ? 1200 : 1600, ring: RING.has(p.k) }));
     let rings = reduceMotion ? [] : dots.filter(p => p.ring); if (isMobile) rings = rings.slice(0, 20);
     globe.pointsData(dots).ringsData(rings.slice(0, 80))
       .hexBinPointsData(st.layers.has('heat') ? conflictPts.filter(p => !p.ref && inTime(p.t) && (REGION === 'All' || p.region === REGION)) : [])
-      .arcsData(arcs(pts));
+      .arcsData(arcs(pts))
+      .pathsData(paths);
   }
   const hexA = h => { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},1)`; };
   const dist = (a, b) => { const r = Math.PI / 180, x = Math.sin((b.lat - a.lat) * r / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin((b.lng - a.lng) * r / 2) ** 2; return 12742 * Math.asin(Math.sqrt(x)); };
@@ -72,6 +120,10 @@ const W2 = (() => {
       .arcColor('color').arcStroke(0.4).arcDashLength(0.4).arcDashGap(2).arcDashAnimateTime(reduceMotion ? 0 : 3000)
       .pointLabel(d => `<b>${esc(d.label)}</b>`).pointColor(d => d.solid)
       .onPointClick(d => d.url && (d.k === 'quake' || d.k === 'eonet') ? setFocus({ ...d, kind: d.k }) : setFocus(d))
+      .pathsData([]).pathPoints(d => d.coords).pathPointLat(p => p[0]).pathPointLng(p => p[1])
+      .pathColor(d => COL[d.k] || '#7dd3fc').pathStroke(0.55).pathTransitionDuration(0)
+      .pathLabel(d => `<b>${esc(d.label)}</b>${d.intel?.km ? `<br>${d.intel.km} km (simplified)` : ''}`)
+      .onPathClick(d => setFocus({ ...d, kind: d.kind }))
       .polygonCapColor(() => 'rgba(0,0,0,0)').polygonSideColor(() => 'rgba(0,0,0,0)').polygonStrokeColor(() => 'rgba(148,163,184,0.25)').polygonAltitude(0.004)
       .polygonLabel(d => `<b>${esc(d.properties.name)}</b><br><small>Click for country briefing</small>`)
       .onPolygonHover(h => globe.polygonCapColor(d => d === h ? 'rgba(34,211,238,0.15)' : 'rgba(0,0,0,0)'))
@@ -145,23 +197,31 @@ const W2 = (() => {
     leafletMap = L.map(el, { worldCopyJump: true, zoomControl: true }).setView([20, 40], isMobile ? 1 : 2);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 8, className: 'dark-tiles' }).addTo(leafletMap);
     leafletLayer = L.markerClusterGroup({ maxClusterRadius: 40 }).addTo(leafletMap);
+    leafletLines = L.layerGroup().addTo(leafletMap);
     leafletMap.on('moveend', saveUrl); $('rotateBtn').hidden = true;
     if (countries.length) addLeafletCountries();
   }
   function addLeafletCountries() {
     L.geoJSON({ type: 'FeatureCollection', features: countries }, { style: { color: '#334155', weight: 0.6, fillOpacity: 0 }, onEachFeature: (f, l) => l.on('click', () => countryPanel(f.properties.name)) }).addTo(leafletMap).bringToBack();
   }
-  function render2d(pts) {
+  function render2d(pts, paths) {
     leafletLayer.clearLayers();
+    if (leafletLines) leafletLines.clearLayers();
     for (const p of pts) {
-      const m = L.circleMarker([p.lat, p.lng], { radius: p.k === 'quake' ? Math.max(4, (p.mag - 4) * 3) : p.k === 'war' ? 6 : 5, color: COL[p.k], fillColor: COL[p.k], fillOpacity: 0.7, weight: 1 });
+      const m = L.circleMarker([p.lat, p.lng], { radius: p.k === 'quake' ? Math.max(4, (p.mag - 4) * 3) : p.k === 'war' || p.k === 'chokepoints' ? 6 : 5, color: COL[p.k], fillColor: COL[p.k], fillOpacity: 0.7, weight: 1 });
       m.bindTooltip(esc(p.label)); m.on('click', () => setFocus(p.k === 'quake' || p.k === 'eonet' ? { ...p, kind: p.k } : p)); leafletLayer.addLayer(m);
+    }
+    for (const path of paths || []) {
+      const pl = L.polyline(path.coords, { color: COL[path.k], weight: 1.6, opacity: 0.85 });
+      pl.bindTooltip(esc(path.label)); pl.on('click', () => setFocus({ ...path, kind: path.kind }));
+      leafletLines.addLayer(pl);
     }
   }
 
   // ---- wire up ----
   function ui() {
-    $('layers').innerHTML = Object.entries(LAYERS).map(([k, n]) => `<label><input type="checkbox" data-l="${k}" ${st.layers.has(k) ? 'checked' : ''}> <i class="dot" style="background:${{ news: COL.war, heat: COL.war, quakes: COL.quake, dis: COL.dis, eonet: COL.eonet, ex: COL.open }[k]}"></i>${n}</label>`).join('');
+    const DOT = { news: COL.war, heat: COL.war, quakes: COL.quake, dis: COL.dis, eonet: COL.eonet, ex: COL.open, crypto: COL.crypto, cables: COL.cable, nuclear: COL.nuclear, power: COL.power, pipes: COL.pipe, ports: COL.ports, bases: COL.bases, tech: COL.tech, chokepoints: COL.chokepoints };
+    $('layers').innerHTML = LAYER_GROUPS.map(([title, group]) => `<div class="layer-group"><b>${title}</b>${Object.entries(group).map(([k, n]) => `<label><input type="checkbox" data-l="${k}" ${st.layers.has(k) ? 'checked' : ''}> <i class="dot" style="background:${DOT[k]}"></i>${n}</label>`).join('')}</div>`).join('');
     $('layers').onchange = e => { const k = e.target.dataset.l; e.target.checked ? st.layers.add(k) : st.layers.delete(k); render(); saveUrl(); };
     $('tWin').value = st.win === 168 ? '7d' : '24h'; $('tSlider').max = st.win; $('tSlider').value = st.pos;
     $('tWin').onchange = e => { st.win = e.target.value === '7d' ? 168 : 24; $('tSlider').max = st.win; setPos(st.win); saveUrl(); };
@@ -188,7 +248,7 @@ const W2 = (() => {
     boot(origInit) {
       const want2d = st.view === '2d' || (st.view !== '3d' && isMobile) || !webglOK() || !window.Globe;
       if (want2d && window.L) init2d(); else { origInit(); enhanceGlobe(); }
-      ui(); loadCountries(); loadExtra(); setInterval(loadExtra, 15 * 60000);
+      ui(); loadCountries(); loadExtra(); loadIntel(); setInterval(loadExtra, 15 * 60000);
     },
     render, checkKw,
   };
