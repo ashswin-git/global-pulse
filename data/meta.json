@@ -1,9 +1,9 @@
 {
- "updated": "2026-11-21T07:24:23.923Z",
+ "updated": "2026-11-21T16:07:53.701Z",
  "sources": {
   "news": {
-   "ok": true,
-   "n": 250,
+   "ok": false,
+   "error": "HTTP 429 Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic us",
    "t": "2026-11-21T07:24:23.923Z"
   },
   "points": {
@@ -14,22 +14,22 @@
   "gdacs": {
    "ok": true,
    "n": 81,
-   "t": "2026-11-21T07:24:23.923Z"
+   "t": "2026-11-21T16:07:53.701Z"
   },
   "quakes": {
    "ok": true,
-   "n": 97,
-   "t": "2026-11-21T07:24:23.923Z"
+   "n": 98,
+   "t": "2026-11-21T16:07:53.701Z"
   },
   "eonet": {
    "ok": true,
    "n": 8,
-   "t": "2026-11-21T07:24:23.923Z"
+   "t": "2026-11-21T16:07:53.701Z"
   },
   "conflict": {
    "ok": true,
-   "n": 59,
-   "t": "2026-11-21T07:24:23.923Z"
+   "n": 65,
+   "t": "2026-11-21T16:07:53.701Z"
   }
  }
 }
