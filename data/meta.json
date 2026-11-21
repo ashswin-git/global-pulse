@@ -1,1 +1,35 @@
-{"updated":"2026-11-21T05:29:47.665Z","sources":{"news":{"ok":false,"error":"fetch failed","t":null},"points":{"ok":false,"error":"fetch failed","t":null},"gdacs":{"ok":true,"n":81,"t":"2026-11-21T05:29:47.665Z"},"quakes":{"ok":true,"n":100,"t":"2026-11-21T05:29:47.665Z"},"eonet":{"ok":true,"n":8,"t":"2026-11-21T05:29:47.665Z"},"conflict":{"ok":true,"n":60,"t":"2026-11-21T05:29:47.665Z"}}}
+{
+ "updated": "2026-11-21T07:24:23.923Z",
+ "sources": {
+  "news": {
+   "ok": true,
+   "n": 250,
+   "t": "2026-11-21T07:24:23.923Z"
+  },
+  "points": {
+   "ok": false,
+   "error": "HTTP 429 Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic us",
+   "t": null
+  },
+  "gdacs": {
+   "ok": true,
+   "n": 81,
+   "t": "2026-11-21T07:24:23.923Z"
+  },
+  "quakes": {
+   "ok": true,
+   "n": 97,
+   "t": "2026-11-21T07:24:23.923Z"
+  },
+  "eonet": {
+   "ok": true,
+   "n": 8,
+   "t": "2026-11-21T07:24:23.923Z"
+  },
+  "conflict": {
+   "ok": true,
+   "n": 59,
+   "t": "2026-11-21T07:24:23.923Z"
+  }
+ }
+}
