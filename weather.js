@@ -21,6 +21,7 @@ const st = {
   layers: new Set((url.get('layers') || 'wind,radar,tc,quakes,dis').split(',').filter(k => LAYERS[k])),
   hour: Math.max(0, Math.min(56, +url.get('h') || 0)),
   view: url.get('view') === '3d' ? '3d' : '2d',
+  bm: (window.GPUI && GPUI.readPageBasemap()) || 'sat',
 };
 let map, markers, lines, radarLayer = null, cloudLayer = null, tempLayer = null, windLayer = null;
 let globe = null, viewMode = st.view;
@@ -37,6 +38,7 @@ function saveUrl() {
   q.set('layers', [...st.layers].join(','));
   if (st.hour) q.set('h', String(st.hour));
   if (viewMode === '3d') q.set('view', '3d');
+  if (st.bm) q.set('bm', st.bm);
   if (map && viewMode === '2d') {
     const c = map.getCenter();
     q.set('z', String(map.getZoom()));
@@ -85,7 +87,8 @@ function initMap() {
   let center = [8, 10];
   if (url.get('c')) { const [a, b] = url.get('c').split(',').map(Number); if (isFinite(a) && isFinite(b)) center = [a, b]; }
   map = L.map(el, { worldCopyJump: true, zoomControl: true, minZoom: 1, maxZoom: 20, renderer: L.canvas({ padding: 0.5 }) }).setView(center, z);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  if (window.GPUI) { map._gpCreditExtra = 'Radar: RainViewer.'; GPUI.setLeafletBasemap(map, st.bm); }
+  else L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles © Esri — Esri, Maxar, Earthstar Geographics, and the GIS User Community',
     maxZoom: 20, maxNativeZoom: 19,
   }).addTo(map);
@@ -525,6 +528,35 @@ function setFocus(d) {
 
 // ---- 3D globe (optional) ----
 function webglOK() { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } }
+
+function applyBasemap(mode) {
+  if (mode) st.bm = mode;
+  if (window.GPUI) GPUI.persistBasemap('gp:wx:basemap', st.bm);
+  if (window.GPUI) {
+    if (globe) {
+      GPUI.applyGlobeBasemap(globe, st.bm);
+      const lit = st.bm === 'night' || st.bm === 'dark';
+      globe.polygonStrokeColor(() => lit ? 'rgba(34,211,238,0.5)' : 'rgba(148,163,184,0.2)');
+      if (lit) loadWxCountries();
+    }
+    if (map) GPUI.setLeafletBasemap(map, st.bm);
+  }
+  const extra = st.layers.has('radar') ? 'Radar: RainViewer.' : '';
+  if (window.GPUI) GPUI.setMapCredit(st.bm, extra);
+  saveUrl();
+}
+
+let wxCountries = [];
+async function loadWxCountries() {
+  if (wxCountries.length || !window.GPUI) return;
+  try {
+    await GPUI.loadTopo();
+    const topo = await (await fetchT('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json')).json();
+    wxCountries = topojson.feature(topo, topo.objects.countries).features;
+  } catch { return; }
+  if (globe) renderGlobe();
+}
+
 async function switchView(mode) {
   viewMode = mode;
   $('wxmap').hidden = mode !== '2d';
@@ -554,7 +586,11 @@ function initGlobe() {
     .polygonCapColor(d => d.cap || 'rgba(244,63,94,0.2)').polygonSideColor(() => 'rgba(244,63,94,0.1)').polygonStrokeColor(() => 'rgba(253,164,175,0.6)')
     .polygonLabel(d => d.label);
   window.globe = globe;
-  if (window.GPUI) GPUI.tuneGlobe(globe);
+  if (window.GPUI) {
+    GPUI.tuneGlobe(globe);
+    GPUI.applyGlobeBasemap(globe, st.bm);
+  }
+  if (st.bm === 'night' || st.bm === 'dark') loadWxCountries();
   const ctl = globe.controls(); ctl.autoRotate = !reduceMotion; ctl.autoRotateSpeed = 0.4; ctl.minDistance = 1.08; ctl.maxDistance = 1000;
   globe.pointOfView({ lat: -10, lng: -160, altitude: 2.2 });
   new ResizeObserver(() => globe.width(W()).height(H())).observe(el);
@@ -579,6 +615,9 @@ function renderGlobe() {
     if (!st.layers.has(k)) continue;
     for (const p of nature[k] || []) pts.push({ ...p, color: DOT[k], label: p.label });
   }
+  if ((st.bm === 'night' || st.bm === 'dark') && wxCountries.length) {
+    for (const f of wxCountries) polys.push({ ...f, label: f.properties?.name, cap: 'rgba(0,0,0,0)' });
+  }
   globe.pointsData(pts).pathsData(paths).polygonsData(polys);
 }
 
@@ -595,6 +634,8 @@ async function boot() {
   GPUI.boot();
   GPUI.wirePanel();
   GPUI.wireIntelTabs();
+  GPUI.persistBasemap('gp:wx:basemap', st.bm);
+  GPUI.mountBasemapToggle('basemapToggle', { value: st.bm, store: 'gp:wx:basemap', fallback: 'sat', onChange: applyBasemap });
   renderPanel();
   await GPUI.loadLeaflet();
   initMap();

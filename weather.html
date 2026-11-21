@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://ashswin-git.github.io/global-pulse/weather.html">
 <link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="markets.css">
 </head>
-<body class="dash wx">
+<body class="dash wx" data-bm-store="gp:wx:basemap" data-bm-default="sat">
 <a class="skip" href="#main">Skip to content</a>
 <div class="bg-glow" aria-hidden="true"></div>
 <header class="topbar">
@@ -19,6 +19,7 @@
   <div class="controls">
     <span class="clock" id="clock" aria-live="off">--:--</span>
     <button type="button" id="tzBtn">Show UTC</button>
+    <div id="basemapToggle" class="basemap-toggle" role="group" aria-label="Basemap"></div>
     <button type="button" id="viewBtn">🌍 3D globe</button>
     <button type="button" class="intel-fab" id="intelBtn" aria-expanded="false" aria-controls="intelRail">Status</button>
   </div>
@@ -44,7 +45,7 @@
     <div id="wxmap" role="application" aria-label="Weather map. Zoom in to street level. Toggle layers in the panel."></div>
     <div id="globe" hidden role="img" aria-label="3D weather globe with tiled satellite imagery"><p class="map-loading mut">Loading globe…</p></div>
     <aside id="details" class="glass details" hidden aria-live="polite"></aside>
-    <p class="map-credit">Imagery: Esri, Maxar, Earthstar Geographics, and the GIS User Community. Radar: RainViewer.</p>
+    <p class="map-credit" id="mapCredit">Imagery: Esri, Maxar, Earthstar Geographics, and the GIS User Community. Radar: RainViewer.</p>
   </div>
   <aside class="intel-rail" id="intelRail">
     <div class="intel-h">
@@ -57,7 +58,7 @@
     </div>
   </aside>
 </main>
-<footer class="dash-foot">Weather: <a href="https://www.rainviewer.com/api.html">RainViewer</a> radar (past frames and nowcast) · <a href="https://open-meteo.com/">Open-Meteo</a> forecast (keyless) · tropical cyclones from <a href="https://www.nhc.noaa.gov/">NOAA NHC</a> and <a href="https://www.metoc.navy.mil/jtwc/jtwc.html">JTWC</a>, with <a href="https://www.gdacs.org">GDACS</a> as fallback · earthquakes <a href="https://earthquake.usgs.gov/">USGS</a> · volcanoes, wildfires, floods and hazards from GDACS and <a href="https://eonet.gsfc.nasa.gov/">NASA EONET</a> · map tiles: Esri, Maxar, Earthstar Geographics, and the GIS User Community. Not an official warning service.</footer>
+<footer class="dash-foot">Weather: <a href="https://www.rainviewer.com/api.html">RainViewer</a> radar (past frames and nowcast) · <a href="https://open-meteo.com/">Open-Meteo</a> forecast (keyless) · tropical cyclones from <a href="https://www.nhc.noaa.gov/">NOAA NHC</a> and <a href="https://www.metoc.navy.mil/jtwc/jtwc.html">JTWC</a>, with <a href="https://www.gdacs.org">GDACS</a> as fallback · earthquakes <a href="https://earthquake.usgs.gov/">USGS</a> · volcanoes, wildfires, floods and hazards from GDACS and <a href="https://eonet.gsfc.nasa.gov/">NASA EONET</a> · night lights: NASA Earth Observatory Black Marble 2016 (Suomi NPP / VIIRS) and NASA GIBS · satellite tiles: Esri, Maxar, Earthstar Geographics, and the GIS User Community. Not an official warning service.</footer>
 <script src="ui.js"></script>
 <script src="weather.js"></script>
 </body></html>

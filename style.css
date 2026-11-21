@@ -207,3 +207,16 @@ body.dash .cam-shot video,body.dash .cam-shot img{max-height:240px}
   .topbar #region,.topbar #rotateBtn,.topbar #tzBtn{display:none}
   body.dash .details{position:absolute;left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:42%;z-index:9}
 }
+
+
+/* Basemap toggle (Night / Satellite / Dark) */
+.basemap-toggle{display:inline-flex;border:1px solid var(--bd);border-radius:999px;overflow:hidden;background:rgba(8,12,24,.7);padding:0}
+.basemap-toggle button{border:0;border-radius:0;background:transparent;padding:5px 10px;font-size:.75rem;font-weight:700;color:var(--mut);margin:0}
+.basemap-toggle button + button{border-left:1px solid var(--bd)}
+.basemap-toggle button.on,.basemap-toggle button[aria-pressed="true"]{background:#22d3ee22;color:var(--ac)}
+.basemap-toggle button:hover{color:var(--tx)}
+@media(max-width:900px){
+  .basemap-toggle{order:5;width:100%;justify-content:stretch}
+  .basemap-toggle button{flex:1;padding:5px 6px;font-size:.7rem}
+  .topbar .controls{gap:6px}
+}

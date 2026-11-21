@@ -35,7 +35,7 @@ Widget freshness follows TradingView’s licensing: crypto and forex are real-ti
 
 ### World Pulse
 
-World Pulse (`world.html`) is a full-screen intel dashboard with an animated 3D globe ([globe.gl](https://github.com/vasturiano/globe.gl) / three.js) and a Leaflet 2D map (the default on mobile, or when WebGL is unavailable). The globe is covered with **Esri World Imagery** slippy-map tiles that start coarse and sharpen as you zoom, with `devicePixelRatio` capped at 2, anisotropic filtering and mipmaps. Libraries and intel JSON load only when that view or layer is needed. Toggle layers in the panel; your selection is stored in the URL.
+World Pulse (`world.html`) is a full-screen intel dashboard with an animated 3D globe ([globe.gl](https://github.com/vasturiano/globe.gl) / three.js) and a Leaflet 2D map (the default on mobile, or when WebGL is unavailable). A **basemap toggle** switches between **Night** (the default — NASA Black Marble city lights with country borders and a cyan atmosphere), **Satellite** (Esri World Imagery slippy tiles that sharpen as you zoom), and **Dark**. Night is remembered in the URL (`bm=`) and in `localStorage`. The high-resolution Black Marble texture (compressed 8K on desktop, 4K on mobile) loads only when Night is selected. `devicePixelRatio` is capped at 2, with anisotropic filtering and mipmaps. Libraries and intel JSON load only when that view or layer is needed. Toggle layers in the panel; your selection is stored in the URL.
 
 - **Hover tooltips** — move the cursor over any point or route for the name, type, key stats and source, immediately, with no click. Updates are throttled to an animation frame so dense layers stay smooth.
 - **Click popups** — the details panel opens with the full record, source and licence. Official cameras play **live video** where the agency publishes a stream (HLS via hls.js for Caltrans and DelDOT, looping official TfL MP4 clips refreshed about every 30 seconds). Still-only cameras auto-refresh the snapshot every 15 seconds with a LIVE badge and last-updated time. Tooltips mark Video vs Snapshot; a **Video cameras only** filter is in the layer panel.
@@ -141,7 +141,7 @@ Weather is a **separate tab and page** (`weather.html`), not a set of layers ins
 
 ### Deep zoom
 
-The World Pulse and Weather globes, and their 2D maps, zoom from a world view down to **street or city level**, so an individual public camera can be reached clearly. Both the 3D globe and the 2D map use [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) tiles (Esri, Maxar, Earthstar Geographics, and the GIS User Community) up to zoom 19. Low-resolution tiles load first; higher-resolution tiles replace them as you zoom. Markers **cluster when zoomed out** and spread as you zoom in (clustering turns off around zoom 11). Zooming the 3D globe in close automatically switches to the 2D map at that place so you can keep going down to the street.
+The World Pulse and Weather globes, and their 2D maps, zoom from a world view down to **street or city level**, so an individual public camera can be reached clearly. Satellite view uses [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) tiles (Esri, Maxar, Earthstar Geographics, and the GIS User Community) up to zoom 19 — low-resolution tiles first, sharper tiles as you zoom. Night view uses a compressed NASA Black Marble 2016 texture on the 3D globe and [NASA GIBS](https://earthdata.nasa.gov/gibs) VIIRS Black Marble tiles on the 2D map (native zoom 0–8, then upscaled). Dark view uses Esri’s World Dark Gray Base. Markers **cluster when zoomed out** and spread as you zoom in (clustering turns off around zoom 11). Zooming the 3D globe in close automatically switches to the 2D map at that place so you can keep going down to the street.
 
 ### Interface
 
@@ -181,13 +181,15 @@ All default sources are free and keyless. Bundled extracts are slim, redistribut
 | Strategic chokepoints (list) | [U.S. EIA World Oil Transit Chokepoints](https://www.eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints) | US government work, public domain | `data/intel/chokepoints.json` (8 EIA + 4 labelled extras) |
 | Live public cameras | TfL JamCams, Caltrans CWWP2, Fintraffic Digitraffic, Delaware DOT TMC | OGL / Powered by TfL Open Data; Caltrans public traveler info; Fintraffic CC BY 4.0; DelDOT public TMC | `data/intel/cameras.json` (1,273) |
 | Country shapes | [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth) | Public domain / ISC | 3D polygons and 2D countries |
-| Map tiles (3D globe and 2D map) | [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) | Esri, Maxar, Earthstar Geographics, and the GIS User Community | Slippy tiles, zoom 0–19; low-res first, then sharper on zoom |
+| Night lights (default World Pulse basemap) | NASA Earth Observatory [Black Marble 2016](https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/) (Suomi NPP / VIIRS); 2D tiles from [NASA GIBS](https://earthdata.nasa.gov/gibs) | US government work, public domain | 3D: compressed 8K/4K texture in `assets/`, lazy-loaded; 2D: GIBS `VIIRS_Black_Marble` (2016-01-01, zoom 0–8) |
+| Satellite basemap | [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) | Esri, Maxar, Earthstar Geographics, and the GIS User Community | Slippy tiles, zoom 0–19; low-res first, then sharper on zoom |
+| Dark basemap | [Esri World Dark Gray Base](https://www.arcgis.com/home/item.html?id=41707f1df105401ead3844c0d2bc344b) | Esri | 2D tiles; 3D uses a dark canvas with cyan borders |
 | Tropical cyclones | [NOAA NHC](https://www.nhc.noaa.gov/CurrentStorms.json) (Atlantic, E/C Pacific); [JTWC](https://www.metoc.navy.mil/jtwc/jtwc.html) RSS, warning text and KMZ (W Pacific, North Indian, South Indian, Australia, South Pacific); [GDACS](https://www.gdacs.org) TC list as fallback | Agency terms (keyless) | `data/cyclones.json` (refresh with `scripts/fetch-cyclones.py`) |
 | Radar / nowcast | [RainViewer](https://www.rainviewer.com/api.html) public weather-maps API and tiles | RainViewer terms (free, keyless) | Live tiles on the Weather map |
 | Forecast, wind, temperature, cloud cover | [Open-Meteo](https://open-meteo.com/) forecast API | Open-Meteo attribution (keyless) | Sampled global grid, 7-day hourly |
 | Optional index quotes | [Finnhub](https://finnhub.io) (only if you add your own free key in `config.js`) | Finnhub terms | Otherwise index tiles are clearly labelled **DEMO** |
 
-Country shapes © Natural Earth via world-atlas. Imagery tiles © Esri, Maxar, Earthstar Geographics, and the GIS User Community. OpenStreetMap extracts (cables, pipelines) remain © OSM contributors (ODbL). Camera stills and streams remain the property of the publishing agency; this project only links to or displays official public feeds, with the required attribution.
+Country shapes © Natural Earth via world-atlas. Night-light imagery © NASA Earth Observatory (Black Marble 2016, Suomi NPP / VIIRS) via NASA GIBS. Satellite and dark canvas tiles © Esri, Maxar, Earthstar Geographics, and the GIS User Community. OpenStreetMap extracts (cables, pipelines) remain © OSM contributors (ODbL). Camera stills and streams remain the property of the publishing agency; this project only links to or displays official public feeds, with the required attribution.
 
 ## Built with
 
@@ -262,7 +264,8 @@ global-pulse/
 ├── weather.html            Weather map (own globe / map / layers)
 ├── app.js, world2.js       World Pulse logic and layers
 ├── weather.js              Weather map, radar, forecast, cyclones
-├── ui.js                   Shared loaders, tiled-globe helpers, toasts, article modal
+├── ui.js                   Shared loaders, tiled-globe helpers, basemap toggle, toasts, article modal
+├── assets/                 Compressed NASA Black Marble textures (8K/4K), lazy-loaded for Night
 ├── markets.js, markets.css Markets desk
 ├── style.css, sw.js        Shared UI and a small service-worker cache
 ├── config.js               Optional Finnhub key (empty by default)

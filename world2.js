@@ -12,6 +12,8 @@ const W2 = (() => {
   const st = {
     layers: new Set((url.get('layers') || 'news,heat,quakes,dis,eonet,ex').split(',').filter(k => LAYERS[k])),
     win: url.get('t') === '7d' ? 168 : 24, pos: null, pov: url.get('pov'), view: url.get('view'),
+    camVideoOnly: url.get('vid') === '1',
+    bm: (window.GPUI && GPUI.readPageBasemap()) || 'night',
   };
   st.pos = Math.min(+url.get('at') || st.win, st.win);
   const extra = { quakes: [], eonet: [] };
@@ -24,6 +26,7 @@ const W2 = (() => {
     q.set('layers', [...st.layers].join(',')); if (REGION !== 'All') q.set('region', REGION);
     q.set('t', st.win === 168 ? '7d' : '24h'); if (st.pos < st.win) q.set('at', Math.round(st.pos));
     if (st.camVideoOnly) q.set('vid', '1');
+    if (st.bm) q.set('bm', st.bm);
     if (globe) { const p = globe.pointOfView(); q.set('pov', [p.lat, p.lng, p.altitude].map(n => n.toFixed(2)).join(',')); }
     if (viewMode === '2d') q.set('view', '2d');
     if (leafletMap && viewMode === '2d') { const c = leafletMap.getCenter(); q.set('z', String(leafletMap.getZoom())); q.set('c', c.lat.toFixed(3) + ',' + c.lng.toFixed(3)); }
@@ -215,7 +218,7 @@ const W2 = (() => {
       .pathColor(d => COL[d.k] || '#7dd3fc').pathStroke(0.55).pathTransitionDuration(0)
       .pathLabel(() => null).onPathHover(d => setHover('path', d))
       .onPathClick(d => setFocus({ ...d, kind: d.kind }))
-      .polygonCapColor(() => 'rgba(0,0,0,0)').polygonSideColor(() => 'rgba(0,0,0,0)').polygonStrokeColor(() => 'rgba(148,163,184,0.25)').polygonAltitude(0.004)
+      .polygonCapColor(() => 'rgba(0,0,0,0)').polygonSideColor(() => 'rgba(0,0,0,0)').polygonStrokeColor(() => (st.bm === 'night' || st.bm === 'dark') ? 'rgba(34,211,238,0.5)' : 'rgba(148,163,184,0.25)').polygonAltitude(0.004)
       .polygonLabel(() => null)
       .onPolygonHover(h => { globe.polygonCapColor(d => d === h ? 'rgba(34,211,238,0.15)' : 'rgba(0,0,0,0)'); setHover('country', h && { kind: 'country', properties: h.properties, label: h.properties?.name }); })
       .onPolygonClick(d => countryPanel(d.properties.name));
@@ -331,7 +334,8 @@ const W2 = (() => {
     if (c) { const [a, b] = c.split(',').map(Number); if (isFinite(a) && isFinite(b)) center = [a, b]; }
     if (isFinite(zq) && zq >= 1) z = Math.min(19, zq);
     leafletMap = L.map(el, { worldCopyJump: true, zoomControl: true, minZoom: 1, maxZoom: 20, renderer: L.canvas({ padding: 0.5 }) }).setView(center, z);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    if (window.GPUI) GPUI.setLeafletBasemap(leafletMap, st.bm);
+    else L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles © Esri — Esri, Maxar, Earthstar Geographics, and the GIS User Community',
       maxZoom: 20, maxNativeZoom: 19,
     }).addTo(leafletMap);
@@ -339,6 +343,20 @@ const W2 = (() => {
     leafletLines = L.layerGroup().addTo(leafletMap);
     leafletMap.on('moveend', saveUrl);
     if (countries.length) addLeafletCountries();
+  }
+
+  function applyBasemap(mode) {
+    if (mode) st.bm = mode;
+    if (window.GPUI) GPUI.persistBasemap('gp:basemap', st.bm);
+    if (window.GPUI) {
+      if (globe) {
+        GPUI.applyGlobeBasemap(globe, st.bm);
+        const lit = st.bm === 'night' || st.bm === 'dark';
+        globe.polygonStrokeColor(() => lit ? 'rgba(34,211,238,0.5)' : 'rgba(148,163,184,0.25)');
+      }
+      if (leafletMap) GPUI.setLeafletBasemap(leafletMap, st.bm);
+    }
+    saveUrl();
   }
   let _init3d;
   async function setViewMode(mode, lat, lng, zoom) {
@@ -411,7 +429,10 @@ const W2 = (() => {
       navigator.geolocation.getCurrentPosition(p => { localStorage.setItem('gp:near', JSON.stringify({ lat: +p.coords.latitude.toFixed(2), lng: +p.coords.longitude.toFixed(2), km: +$('nearKm').value })); checkNearMe(); },
         () => $('nearOut').innerHTML = '<p class="empty">Location permission denied.</p>', { maximumAge: 3600e3, timeout: 15000 });
     };
-    if (window.GPUI) { GPUI.wirePanel(); GPUI.wireIntelTabs(); }
+    if (window.GPUI) {
+      GPUI.wirePanel(); GPUI.wireIntelTabs();
+      GPUI.mountBasemapToggle('basemapToggle', { value: st.bm, store: 'gp:basemap', fallback: 'night', onChange: applyBasemap });
+    }
     $('viewBtn').textContent = viewMode === '2d' ? '🌍 3D globe' : '🗺 2D map';
     $('viewBtn').onclick = () => setViewMode(viewMode === '2d' ? '3d' : '2d');
     const r = url.get('region'); if (r) { $('region').value = r; REGION = $('region').value; }
@@ -422,6 +443,7 @@ const W2 = (() => {
   return {
     async boot(origInit) {
       _init3d = origInit;
+      if (window.GPUI) GPUI.persistBasemap('gp:basemap', st.bm);
       const want2d = st.view === '2d' || (st.view !== '3d' && isMobile) || !webglOK();
       viewMode = want2d ? '2d' : '3d';
       if (want2d) {
@@ -439,7 +461,8 @@ const W2 = (() => {
       setTimeout(() => { if (window.GPUI) GPUI.loadTopo().then(loadCountries); else loadCountries(); }, 0);
       setInterval(loadExtra, 15 * 60000);
     },
-    render, checkKw, flyTo, setViewMode, updateLayerCounts,
+    render, checkKw, flyTo, setViewMode, updateLayerCounts, applyBasemap,
+    basemap: () => st.bm,
     showHover(d, x, y) { hover.point = d || null; if (x != null) hover.x = x; if (y != null) hover.y = y; placeTip(); },
   };
 })();

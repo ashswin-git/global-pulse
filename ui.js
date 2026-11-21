@@ -51,18 +51,146 @@ const GPUI = (() => {
   function loadHls() { return (window.Hls || document.createElement('video').canPlayType('application/vnd.apple.mpegurl')) ? Promise.resolve() : loadScript(HLS_SRC, HLS_SRI); }
   function loadTopo() { return window.topojson ? Promise.resolve() : loadScript(TOPO_SRC, TOPO_SRI); }
 
-  // Slippy tiles that sharpen with zoom. ESRI World Imagery (Web Mercator, z/y/x).
-  // Cap zoom so a distant camera does not request street-level tiles.
+  // Basemaps: Night (NASA Black Marble texture / GIBS tiles), Satellite (Esri), Dark.
+  const ESRI_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  const ESRI_DARK = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+  const GIBS_NIGHT = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png';
+  const CREDIT = {
+    night: 'Night lights: NASA Earth Observatory Black Marble 2016 (Suomi NPP / VIIRS) · NASA GIBS',
+    sat: 'Imagery: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+    dark: 'Dark canvas: Esri World Dark Gray Base. Night lights available as the Night basemap (NASA Black Marble).',
+  };
+  const CREDIT_HTML = {
+    night: 'Night lights: NASA Earth Observatory <a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/" target="_blank" rel="noopener">Black Marble</a> 2016 (Suomi NPP / VIIRS) · <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a>',
+    sat: 'Tiles © Esri — Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+    dark: 'Tiles © Esri — World Dark Gray Base. Night lights: NASA Black Marble / GIBS',
+  };
+
+  function nightTextureUrl() {
+    const wide = Math.max(innerWidth || 0, innerHeight || 0) * Math.min(2, window.devicePixelRatio || 1);
+    return wide >= 1400 ? 'assets/black-marble-8k.jpg' : 'assets/black-marble-4k.jpg';
+  }
+
   function globeTileUrl(x, y, l) {
     const z = Math.max(0, Math.min(l, 19));
     return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/' + z + '/' + y + '/' + x;
   }
 
+  function readBasemap(storeKey, fallback) {
+    const q = new URLSearchParams(location.search).get('bm');
+    if (q === 'satellite') return 'sat';
+    if (q === 'night' || q === 'sat' || q === 'dark') return q;
+    try { const s = localStorage.getItem(storeKey); if (s === 'night' || s === 'sat' || s === 'dark') return s; } catch {}
+    const body = document.body;
+    const def = (body && body.getAttribute('data-bm-default')) || fallback || 'night';
+    return def === 'satellite' ? 'sat' : def;
+  }
+  function persistBasemap(storeKey, mode) {
+    try { localStorage.setItem(storeKey, mode); } catch {}
+  }
+  function pageBasemapStore() { return (document.body && document.body.getAttribute('data-bm-store')) || 'gp:basemap'; }
+  function pageBasemapDefault() { return (document.body && document.body.getAttribute('data-bm-default')) || 'night'; }
+  function readPageBasemap() { return readBasemap(pageBasemapStore(), pageBasemapDefault()); }
+
+  function basemapCredit(mode, extra) {
+    const base = CREDIT[mode] || CREDIT.sat;
+    return extra ? base + '. ' + extra : base;
+  }
+  function setMapCredit(mode, extra) {
+    const el = $('mapCredit');
+    if (!el) return;
+    const more = extra ? ' ' + extra : '';
+    el.innerHTML = (CREDIT_HTML[mode] || CREDIT_HTML.sat) + (more ? ' · ' + more : '');
+  }
+
+  function leafletBasemap(mode) {
+    if (mode === 'night') {
+      return L.tileLayer(GIBS_NIGHT, {
+        attribution: CREDIT_HTML.night,
+        maxZoom: 20, maxNativeZoom: 8, tileSize: 256,
+      });
+    }
+    if (mode === 'dark') {
+      return L.tileLayer(ESRI_DARK, {
+        attribution: CREDIT_HTML.dark,
+        maxZoom: 20, maxNativeZoom: 16,
+      });
+    }
+    return L.tileLayer(ESRI_SAT, {
+      attribution: CREDIT_HTML.sat,
+      maxZoom: 20, maxNativeZoom: 19,
+    });
+  }
+  function setLeafletBasemap(map, mode) {
+    if (!map || !window.L) return;
+    if (map._gpBase) { try { map.removeLayer(map._gpBase); } catch {} }
+    const layer = leafletBasemap(mode);
+    layer.addTo(map);
+    if (layer.bringToBack) layer.bringToBack();
+    map._gpBase = layer;
+    setMapCredit(mode, map._gpCreditExtra || '');
+    return layer;
+  }
+
+  function applyGlobeBasemap(globe, mode) {
+    if (!globe) return;
+    try { if (typeof globe.bumpImageUrl === 'function') globe.bumpImageUrl(null); } catch {}
+    if (mode === 'night') {
+      try { if (typeof globe.globeTileEngineUrl === 'function') globe.globeTileEngineUrl(null); } catch {}
+      globe.globeImageUrl(nightTextureUrl());
+      globe.atmosphereColor('#22d3ee').atmosphereAltitude(0.22);
+    } else if (mode === 'dark') {
+      try { if (typeof globe.globeTileEngineUrl === 'function') globe.globeTileEngineUrl(null); } catch {}
+      globe.globeImageUrl('assets/earth-dark.jpg');
+      globe.atmosphereColor('#22d3ee').atmosphereAltitude(0.2);
+    } else {
+      // Satellite: slippy Esri tiles that sharpen with zoom. Keep any prior night
+      // texture off-screen so switching back is instant.
+      if (typeof globe.globeTileEngineMaxLevel === 'function') globe.globeTileEngineMaxLevel(19);
+      if (typeof globe.globeTileEngineUrl === 'function') globe.globeTileEngineUrl(globeTileUrl);
+      try { globe.globeImageUrl(null); } catch {}
+      globe.atmosphereColor('#22d3ee').atmosphereAltitude(0.16);
+    }
+    setMapCredit(mode);
+    // Refresh anisotropy/mipmaps once the new texture or tiles land.
+    setTimeout(() => { try { globe._gpPolish && globe._gpPolish(); } catch {} }, 400);
+    setTimeout(() => { try { globe._gpPolish && globe._gpPolish(); } catch {} }, 1600);
+  }
+
+  function mountBasemapToggle(el, opts = {}) {
+    const root = typeof el === 'string' ? $(el) : el;
+    if (!root) return;
+    const store = opts.store || pageBasemapStore();
+    let mode = opts.value || readBasemap(store, opts.fallback || pageBasemapDefault());
+    const items = [
+      { id: 'night', label: '🌃 Night' },
+      { id: 'sat', label: '🛰️ Satellite' },
+      { id: 'dark', label: '🌑 Dark' },
+    ];
+    const paint = () => {
+      root.classList.add('basemap-toggle');
+      root.setAttribute('role', 'group');
+      root.setAttribute('aria-label', 'Basemap');
+      root.innerHTML = items.map(it => `<button type="button" data-bm="${it.id}" class="${it.id === mode ? 'on' : ''}" aria-pressed="${it.id === mode}">${it.label}</button>`).join('');
+    };
+    const apply = next => {
+      if (!next || next === mode) { paint(); return; }
+      mode = next;
+      persistBasemap(store, mode);
+      paint();
+      if (opts.onChange) opts.onChange(mode);
+    };
+    paint();
+    root.onclick = e => {
+      const btn = e.target.closest('button[data-bm]');
+      if (btn) apply(btn.getAttribute('data-bm'));
+    };
+    return { get: () => mode, set: apply };
+  }
+
   function tuneGlobe(globe) {
     if (!globe) return;
     try { if (typeof globe.bumpImageUrl === 'function') globe.bumpImageUrl(null); } catch {}
-    if (typeof globe.globeTileEngineUrl === 'function') globe.globeTileEngineUrl(globeTileUrl);
-    if (typeof globe.globeTileEngineMaxLevel === 'function') globe.globeTileEngineMaxLevel(19);
 
     const renderer = typeof globe.renderer === 'function' ? globe.renderer() : null;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -89,6 +217,7 @@ const GPUI = (() => {
         }
       });
     }
+    globe._gpPolish = polishTextures;
     polishTextures();
     let n = 0;
     const iv = setInterval(() => { polishTextures(); if (++n >= 12) clearInterval(iv); }, 700);
@@ -292,6 +421,9 @@ const GPUI = (() => {
   return {
     boot: ensure, toast, openArticle, closeArticle, bindNewsClicks, wirePanel, wireIntelTabs,
     esc, safeUrl, loadGlobeLib, loadLeaflet, loadHls, loadTopo, tuneGlobe, globeTileUrl,
+    applyGlobeBasemap, leafletBasemap, setLeafletBasemap,
+    readBasemap, readPageBasemap, persistBasemap, mountBasemapToggle, basemapCredit, setMapCredit,
+    nightTextureUrl,
     stopCam, mountCam, camMediaKind,
   };
 })();

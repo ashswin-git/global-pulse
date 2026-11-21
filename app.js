@@ -269,7 +269,11 @@ function initGlobe() {
     .pointAltitude(0.01).pointRadius(0.4).pointColor(d => d.solid).pointLabel(() => null)
     .onPointClick(d => setFocus(d));
   window.globe = globe;
-  if (window.GPUI) GPUI.tuneGlobe(globe);
+  if (window.GPUI) {
+    GPUI.tuneGlobe(globe);
+    const bm = (window.W2 && W2.basemap && W2.basemap()) || GPUI.readPageBasemap();
+    GPUI.applyGlobeBasemap(globe, bm);
+  }
   const ctl = globe.controls(); ctl.autoRotate = rotating; ctl.autoRotateSpeed = 0.45;
   ctl.minDistance = 1.08; ctl.maxDistance = 1000;
   el.addEventListener('pointerenter', () => ctl.autoRotate = false);

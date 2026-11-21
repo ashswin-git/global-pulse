@@ -14,7 +14,7 @@
 <meta name="twitter:image" content="https://ashswin-git.github.io/global-pulse/docs/screenshot.png">
 <link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="markets.css">
 </head>
-<body class="dash">
+<body class="dash" data-bm-store="gp:basemap" data-bm-default="night">
 <a class="skip" href="#main">Skip to content</a>
 <div class="bg-glow" aria-hidden="true"></div>
 <header class="topbar">
@@ -26,6 +26,7 @@
     <span class="clock" id="clock" aria-live="off">--:--</span>
     <button type="button" id="tzBtn">Show UTC</button>
     <button type="button" id="rotateBtn" aria-pressed="false">⏸ Pause rotation</button>
+    <div id="basemapToggle" class="basemap-toggle" role="group" aria-label="Basemap"></div>
     <button type="button" id="viewBtn">🗺 2D map</button>
     <button type="button" class="intel-fab" id="intelBtn" aria-expanded="false" aria-controls="intelRail">Intel</button>
   </div>
@@ -41,10 +42,10 @@
   </aside>
   <div class="globe-wrap">
     <div id="mapTip" class="map-tip" hidden role="tooltip"></div>
-    <div id="globe" role="img" aria-label="3D globe with tiled satellite imagery. Click a marker for details."><p class="map-loading mut">Loading globe…</p></div>
+    <div id="globe" role="img" aria-label="3D globe. Switch between night lights, satellite imagery, and a dark basemap. Click a marker for details."><p class="map-loading mut">Loading globe…</p></div>
     <div id="map2d" hidden role="application" aria-label="2D world map. Zoom in to street level to see individual cameras."></div>
     <aside id="details" class="glass details" hidden aria-live="polite"></aside>
-    <p class="map-credit" id="mapCredit">Imagery: Esri, Maxar, Earthstar Geographics, and the GIS User Community.</p>
+    <p class="map-credit" id="mapCredit">Night lights: NASA Earth Observatory Black Marble 2016 (Suomi NPP / VIIRS). Satellite: Esri, Maxar, Earthstar Geographics, and the GIS User Community.</p>
     <span id="legWar" class="sr-only">Conflict (reference)</span>
   </div>
   <aside class="intel-rail" id="intelRail">
@@ -84,7 +85,7 @@
     </div>
   </aside>
 </main>
-<footer class="dash-foot">Data: CoinGecko / CoinPaprika · GDELT · GDACS · USGS · NASA EONET · WRI Global Power Plant Database (CC BY 4.0) · OpenStreetMap cables &amp; pipelines (ODbL) · Natural Earth ports · NTAD / USDOT military bases · Wikidata (CC0) · EIA oil-transit chokepoints · TfL / Caltrans / Fintraffic / DelDOT public cameras · public conflict briefing RSS · Natural Earth via world-atlas · map tiles: Esri, Maxar, Earthstar Geographics, and the GIS User Community · exchange hours computed locally (approx.). Demo data is always labelled. Not financial advice.</footer>
+<footer class="dash-foot">Data: CoinGecko / CoinPaprika · GDELT · GDACS · USGS · NASA EONET · WRI Global Power Plant Database (CC BY 4.0) · OpenStreetMap cables &amp; pipelines (ODbL) · Natural Earth ports · NTAD / USDOT military bases · Wikidata (CC0) · EIA oil-transit chokepoints · TfL / Caltrans / Fintraffic / DelDOT public cameras · public conflict briefing RSS · Natural Earth via world-atlas · night lights: NASA Earth Observatory Black Marble 2016 (Suomi NPP / VIIRS) and NASA GIBS · satellite tiles: Esri, Maxar, Earthstar Geographics, and the GIS User Community · exchange hours computed locally (approx.). Demo data is always labelled. Not financial advice.</footer>
 <script src="ui.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
