@@ -37,13 +37,13 @@
         <span role="listitem"><i class="dot hollow"></i>Closed</span>
         <span role="listitem"><i class="tri"></i><span id="legWar">Conflict (reference)</span></span>
         <span role="listitem"><i class="sq"></i>Disaster (GDACS)</span><span role="listitem"><i class="dot" style="background:#a78bfa"></i>Quake</span><span role="listitem"><i class="dot" style="background:#34d399"></i>Hazard</span>
-        <span role="listitem"><i class="dot" style="background:#7dd3fc"></i>Cables</span><span role="listitem"><i class="dot" style="background:#f472b6"></i>Nuclear</span><span role="listitem"><i class="dot" style="background:#fbbf24"></i>Power</span><span role="listitem"><i class="dot" style="background:#fb923c"></i>Pipelines</span><span role="listitem"><i class="dot" style="background:#a3e635"></i>Bases</span><span role="listitem"><i class="dot" style="background:#818cf8"></i>Tech</span><span role="listitem"><i class="dot" style="background:#fda4af"></i>Chokepoints</span>
+        <span role="listitem"><i class="dot" style="background:#7dd3fc"></i>Cables</span><span role="listitem"><i class="dot" style="background:#f472b6"></i>Nuclear</span><span role="listitem"><i class="dot" style="background:#fbbf24"></i>Power</span><span role="listitem"><i class="dot" style="background:#fb923c"></i>Pipelines</span><span role="listitem"><i class="dot" style="background:#a3e635"></i>Bases</span><span role="listitem"><i class="dot" style="background:#818cf8"></i>Tech</span><span role="listitem"><i class="dot" style="background:#fda4af"></i>Chokepoints</span><span role="listitem"><i class="dot" style="background:#38bdf8"></i>Public cameras</span>
         <button id="rotateBtn" aria-pressed="false">⏸ Pause rotation</button> <button id="viewBtn">🗺 2D map</button>
       </div></div>
     <fieldset class="w2bar"><legend class="sr-only">Map layers</legend><div id="layers" class="layers"></div></fieldset>
     <div class="w2bar time"><label for="tWin">Time</label> <select id="tWin"><option value="24h">Last 24h</option><option value="7d">Last 7 days</option></select>
       <input type="range" id="tSlider" min="0" max="24" step="0.25" aria-label="Show events up to this time"> <button id="playBtn">▶ Play</button> <span id="w2count" class="mut" aria-live="polite"></span></div>
-    <div class="globe-wrap"><div id="globe" role="img" aria-label="3D globe with markers for stock exchanges, conflicts and disasters. Click a marker for details."></div>
+    <div class="globe-wrap"><div id="mapTip" class="map-tip" hidden role="tooltip"></div><div id="globe" role="img" aria-label="3D globe with markers for stock exchanges, conflicts and disasters. Click a marker for details."></div>
       <aside id="details" class="glass details" hidden aria-live="polite"></aside></div>
   </section>
   <section class="glass" aria-labelledby="h-al"><div class="card-h"><h2 id="h-al"><span aria-hidden="true">🔔</span> Watch &amp; alerts</h2><button id="notifBtn">🔕 Enable browser alerts</button></div>
@@ -57,12 +57,12 @@
     <div class="grid" id="stocks"></div></section>
   <section class="glass" aria-labelledby="h-cr"><div class="card-h"><h2 id="h-cr"><span aria-hidden="true">🪙</span> Crypto</h2><span><button id="curBtn">₹ Show INR</button> <span class="tag" id="cryptoTag">…</span></span></div>
     <p id="cryptoGlobal" class="note"></p><div class="grid" id="crypto"></div></section>
-  <section class="glass" aria-labelledby="h-nw"><div class="card-h"><h2 id="h-nw"><span aria-hidden="true">⚔️</span> Conflict & War News</h2><span class="tag" id="newsTag">…</span></div>
+  <section class="glass" aria-labelledby="h-nw"><div class="card-h"><h2 id="h-nw"><span aria-hidden="true">⚔️</span> Conflict &amp; War News</h2><span class="tag" id="newsTag">…</span></div>
     <div id="newsFilter" class="note"></div><div class="news" id="news"></div></section>
   <section class="glass" aria-labelledby="h-ds"><div class="card-h"><h2 id="h-ds"><span aria-hidden="true">🚨</span> Disasters & Crises</h2><span class="tag" id="gdacsTag">…</span></div>
     <div class="news" id="disasters"></div></section>
 </main>
-<footer>Data: CoinGecko / CoinPaprika · GDELT · GDACS · USGS · NASA EONET · WRI Global Power Plant Database (CC BY 4.0) · OpenStreetMap cables &amp; pipelines (ODbL) · Natural Earth ports · NTAD / USDOT military bases · Wikidata (CC0) · EIA oil-transit chokepoints · Natural Earth via world-atlas · map tiles © OpenStreetMap contributors · exchange hours computed locally (approx.). Demo data is always labelled. Not financial advice.</footer>
+<footer>Data: CoinGecko / CoinPaprika · GDELT · GDACS · USGS · NASA EONET · WRI Global Power Plant Database (CC BY 4.0) · OpenStreetMap cables &amp; pipelines (ODbL) · Natural Earth ports · NTAD / USDOT military bases · Wikidata (CC0) · EIA oil-transit chokepoints · TfL / Caltrans / Fintraffic / DelDOT public cameras · public conflict briefing RSS · Natural Earth via world-atlas · map tiles © OpenStreetMap contributors · exchange hours computed locally (approx.). Demo data is always labelled. Not financial advice.</footer>
 <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.33.0/dist/globe.gl.min.js" integrity="sha384-RdB5K07KIDe+WTwJoZTo3f5rEQoDav49ZzIkIHNgojP7V/oBX4Ovo8BhYKwi8rp1" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>

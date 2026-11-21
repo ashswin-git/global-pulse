@@ -19,3 +19,5 @@ which requires a separate data licence).
 Live (not stored here): CoinGecko / CoinPaprika prices, GDELT conflict points, GDACS, USGS quakes, NASA EONET.
 
 Rebuild: `python3 scripts/build-intel.py` (expects raw extracts in `/tmp/gp-intel/` as produced by the documented curl/Overpass steps).
+
+| `cameras.json` | Live public cameras | TfL JamCams (OGL / Powered by TfL Open Data), Caltrans CWWP2, Fintraffic Digitraffic (CC BY 4.0), Delaware DOT TMC | Official public traffic / road-weather cameras only; stills or official streams. Windy skipped (API key required). Private CCTV excluded. |

@@ -58,3 +58,12 @@ section{min-width:0;overflow:hidden}.card-h>*{min-width:0}.tag{white-space:norma
 .dark-tiles{filter:invert(1) hue-rotate(180deg) brightness(.75) contrast(.9)}
 
 .layer-groups,.layers{flex-direction:column;align-items:stretch;gap:8px}.layer-group{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}.layer-group b{font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);margin-right:4px}
+
+#mapTip,.leaflet-tooltip.map-tip{position:absolute;left:0;top:0;z-index:8;pointer-events:none;max-width:280px;padding:8px 10px;border-radius:10px;background:rgba(8,12,24,.94);border:1px solid var(--bd);box-shadow:0 8px 24px #0009;color:var(--tx);font-size:.78rem;line-height:1.35;white-space:normal}
+#mapTip b,.leaflet-tooltip.map-tip b{display:block;margin-bottom:2px;font-size:.85rem}
+#mapTip span,.leaflet-tooltip.map-tip span{display:block}
+#mapTip .typ,.leaflet-tooltip.map-tip .typ{color:var(--ac);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin:2px 0 4px}
+#mapTip .mut,.leaflet-tooltip.map-tip .mut{font-size:.7rem;margin-top:4px}
+.leaflet-tooltip.map-tip{margin:0}
+.cam-shot{margin:8px 0}.cam-shot img, .details video{width:100%;border-radius:8px;background:#000;display:block;max-height:200px;object-fit:cover}
+.news .ex{display:block;color:#cbd5e1;margin-top:3px}

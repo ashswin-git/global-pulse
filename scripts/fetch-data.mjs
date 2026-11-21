@@ -53,5 +53,63 @@ await job('eonet', async () => {
   for (const e of j.events || []) { const g = (e.geometry || []).filter(g => g.type === 'Point').at(-1); if (g) features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: g.coordinates }, properties: { title: e.title, cat: e.categories?.[0]?.title, date: g.date, url: e.sources?.[0]?.url || e.link } }); }
   return { type: 'FeatureCollection', features };
 });
+
+// Richer conflict briefing from public RSS (BBC, UN News, Guardian, Al Jazeera, DW, France 24).
+// ACLED is not used (registration/API key). ReliefWeb JSON API v2 needs a pre-approved appname, so it is not called.
+function strip(html) {
+  return String(html || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+}
+function parseRss(xml, source) {
+  const items = [];
+  for (const raw of String(xml || '').split(/<item[\s>]/i).slice(1)) {
+    const pick = tag => {
+      const m = raw.match(new RegExp('<' + tag + '[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></' + tag + '>|<' + tag + '[^>]*>([\\s\\S]*?)</' + tag + '>', 'i'));
+      return strip((m && (m[1] || m[2])) || '');
+    };
+    let url = pick('link');
+    if (!/^https?:/.test(url)) {
+      const href = raw.match(/href=["'](https?:[^"']+)["']/i);
+      url = href ? href[1] : pick('guid');
+    }
+    const title = pick('title');
+    if (!title || !/^https?:/.test(url)) continue;
+    items.push({ title, url, source, date: pick('pubDate') || pick('dc:date') || '', excerpt: pick('description').slice(0, 220), kind: 'rss' });
+  }
+  return items;
+}
+const CONFLICT_WORD = /\b(war|warfare|conflict|airstrike|air strike|shelling|ceasefire|cease-fire|clashes|missile|bombard|invasion|occupied|offensive|troops|militia|rebels|hostage|siege|artillery|drone strike|peace talks)\b/i;
+async function getText(url) {
+  const r = await fetch(url, { headers: { ...UA, Accept: 'application/rss+xml, application/xml, text/xml, */*' }, signal: AbortSignal.timeout(30000) });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.text();
+}
+await job('conflict', async () => {
+  const items = [], seen = new Set();
+  const add = rec => {
+    const key = (rec.url || rec.title).split('?')[0];
+    if (!rec.title || !rec.url || seen.has(key)) return;
+    seen.add(key);
+    items.push(rec);
+  };
+  // ReliefWeb JSON API v2 requires a pre-approved appname, so it is not called (no secrets).
+  for (const [source, url] of [
+    ['BBC World', 'https://feeds.bbci.co.uk/news/world/rss.xml'],
+    ['UN News', 'https://news.un.org/feed/subscribe/en/news/all/rss.xml'],
+    ['The Guardian World', 'https://www.theguardian.com/world/rss'],
+    ['Al Jazeera', 'https://www.aljazeera.com/xml/rss/all.xml'],
+    ['DW World', 'https://rss.dw.com/rdf/rss-en-world'],
+    ['France 24', 'https://www.france24.com/en/rss'],
+  ]) {
+    try {
+      const xml = await getText(url);
+      const parsed = parseRss(xml, source); const keepAll = source === 'UN News' || source === 'Al Jazeera';
+      for (const rec of parsed) if (keepAll || CONFLICT_WORD.test(rec.title + ' ' + rec.excerpt)) add(rec);
+    } catch (e) { console.warn('rss', source, e.message); }
+  }
+  if (!items.length) throw new Error('empty');
+  items.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return { items: items.slice(0, 80) };
+});
+
 await writeFile('data/meta.json', JSON.stringify(meta, null, 1));
 console.log(JSON.stringify(meta.sources));

@@ -150,7 +150,7 @@ async function gdelt(url, tagId) {
   throw new Error('gdelt failed');
 }
 // Pre-fetched data (GitHub Actions cron, hourly) first; live API as fallback.
-const DATA_MAX_AGE = 3 * 3600e3;
+const DATA_MAX_AGE = 8 * 3600e3;
 async function dataFile(name) {
   try { const meta = window.__meta || (window.__meta = await (await fetchT('data/meta.json?' + Math.floor(Date.now() / 6e5))).json());
     const src = meta.sources?.[name]; if (!src?.ok || Date.now() - Date.parse(src.t) > DATA_MAX_AGE) return null;
@@ -174,14 +174,39 @@ async function loadNews() {
   }
   renderNews();
 }
+let conflictArts = [];
+function newsCard(a) {
+  const href = safeUrl(a.url);
+  const when = a.date || a.seendate ? new Date(a.date || a.seendate) : null;
+  const whenTxt = when && !isNaN(+when) ? when.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+  const src = a.source || a.domain || '';
+  const extra = [src, a.country || a.sourcecountry || '', whenTxt].filter(Boolean).join(' · ');
+  const inner = `${esc(a.title)}${a.excerpt ? `<small class="ex">${esc(a.excerpt)}</small>` : ''}<small>${esc(extra)}</small>`;
+  return href ? `<a class="item" href="${esc(href)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="item">${inner}</div>`;
+}
 function renderNews() {
   let arts = newsArts;
-  const intelFocus = FOCUS && ['nuclear','power','cable','pipe','crypto','tech','bases','ports','chokepoints'].includes(FOCUS.kind);
-  if (FOCUS && !intelFocus) { const words = (FOCUS.q || FOCUS.label || '').toLowerCase().split(/[\s/–-]+/).filter(w => w.length > 3); arts = arts.filter(a => words.some(w => a.title.toLowerCase().includes(w))); }
+  const intelFocus = FOCUS && ['nuclear','power','cable','pipe','crypto','tech','bases','ports','chokepoints','cams'].includes(FOCUS.kind);
+  if (FOCUS && !intelFocus) { const words = (FOCUS.q || FOCUS.label || '').toLowerCase().split(/[\s/–-]+/).filter(w => w.length > 3); arts = arts.filter(a => words.some(w => (a.title || '').toLowerCase().includes(w))); }
   $('newsFilter').innerHTML = FOCUS && !intelFocus ? `Filtered: <b>${esc(FOCUS.label)}</b> <button onclick="setFocus(null)">Clear</button>` : '';
-  if (arts.length) $('news').innerHTML = arts.slice(0, 30).map(a => `<a class="item" href="${esc(safeUrl(a.url))}" target="_blank" rel="noopener">${esc(a.title)}<small>${esc(a.domain)} · ${esc(a.sourcecountry || '')}</small></a>`).join('');
-  else if (!newsArts.length) $('news').innerHTML = HOTSPOTS.map(h => `<div class="item">${esc(h.name)}<small>Static reference hotspot (not live news)</small></div>`).join('');
+  const brief = (!FOCUS || intelFocus) ? conflictArts.slice(0, 12) : conflictArts.filter(a => { const words = (FOCUS.q || FOCUS.label || '').toLowerCase().split(/[\s/–-]+/).filter(w => w.length > 3); return words.some(w => (a.title + ' ' + (a.excerpt || '')).toLowerCase().includes(w)); }).slice(0, 8);
+  const head = brief.length ? `<p class="mut">Briefing (UN News, BBC, Guardian, Al Jazeera, DW, France 24)</p>${brief.map(newsCard).join('')}<p class="mut">More headlines (GDELT)</p>` : '';
+  if (arts.length) $('news').innerHTML = head + arts.slice(0, 30).map(a => newsCard({ ...a, source: a.domain, excerpt: a.excerpt })).join('');
+  else if (!newsArts.length && !brief.length) $('news').innerHTML = HOTSPOTS.map(h => `<div class="item">${esc(h.name)}<small>Static reference hotspot (not live news)</small></div>`).join('');
+  else if (!arts.length && brief.length) $('news').innerHTML = head;
   else $('news').innerHTML = '<p class="empty">No recent headlines match this marker.</p>';
+}
+async function loadConflictBrief() {
+  try {
+    const pre = await dataFile('conflict');
+    const items = pre?.data?.items || [];
+    if (items.length) { conflictArts = items; renderNews(); return; }
+  } catch {}
+  try {
+    const j = await (await fetchT('data/conflict.json?' + Math.floor(Date.now() / 6e5))).json();
+    conflictArts = j.items || [];
+  } catch { conflictArts = []; }
+  renderNews();
 }
 async function loadConflictGeo() {
   try {
@@ -289,8 +314,19 @@ function setFocus(d) {
   else if (d.kind === 'tech') body = `<p>${esc(it.typ || 'Tech site')}</p><p>${esc(it.c || '')}${it.op ? ' · ' + esc(it.op) : ''}</p>${srcLine}${wd}`;
   else if (d.kind === 'crypto') body = `<p>Cryptocurrency exchange headquarters / registered location (Wikidata).</p><p>${esc(it.c || '')}</p>${srcLine}${ext(it.url)}${wd}`;
   else if (d.kind === 'chokepoints') body = `<p>${esc(it.typ || 'Strategic chokepoint')}</p><p>${esc(it.note || '')}</p><p class="mut">${esc(it.src || '')}. Coordinates from Wikidata (CC0).</p>${wd}`;
+  else if (d.kind === 'cams') {
+    const srcs = (it.src && d.src && d.src.sources && d.src.sources[it.src]) || {};
+    const img = safeUrl(it.img), vid = safeUrl(it.vid), stream = safeUrl(it.stream), page = safeUrl(it.page);
+    const bust = u => u + (u.includes('?') ? '&' : '?') + 't=' + Date.now();
+    body = `<p>Official public camera${it.c ? ' · ' + esc(it.c) : ''}</p>
+      ${img ? `<p class="cam-shot"><img src="${esc(bust(img))}" alt="Live snapshot: ${esc(d.label)}" referrerpolicy="no-referrer" loading="eager"></p>` : ''}
+      ${vid ? `<p><video src="${esc(vid)}" controls muted playsinline loop preload="metadata"></video></p>` : ''}
+      ${stream && !vid ? `<p><a href="${esc(stream)}" target="_blank" rel="noopener">Open live stream (HLS) →</a></p>` : ''}
+      ${page ? `<p><a href="${esc(page)}" target="_blank" rel="noopener">Official camera page →</a></p>` : ''}
+      <p class="mut">${esc(srcs.name || 'Public agency camera')}. ${esc(srcs.license || '')} ${esc(srcs.terms || 'Official traveler-information camera, not private CCTV.')}</p>`;
+  }
   else body = `<p>${d.ref ? 'Reference hotspot (static list, not live).' : 'Location mentioned in conflict reporting over the last 24h (GDELT).'}</p>${d.count ? `<p>Mentions: ${esc(d.count)}</p>` : ''}`;
-  const newsNote = ['nuclear','power','cable','pipe','crypto','tech','bases','ports','chokepoints'].includes(d.kind) ? '' : '<p class="mut">News below is filtered to this marker.</p>';
+  const newsNote = ['nuclear','power','cable','pipe','crypto','tech','bases','ports','chokepoints','cams'].includes(d.kind) ? '' : '<p class="mut">News below is filtered to this marker.</p>';
   panel.innerHTML = `<button class="close" onclick="setFocus(null)" aria-label="Close details">✕</button><h3>${esc(d.label)}</h3>${body}${newsNote}`;
   panel.hidden = false;
   const card = d.kind === 'exchange' ? $('card-' + d.id) : null;
@@ -313,7 +349,7 @@ if (reduceMotion) { rotating = false; $('rotateBtn').textContent = '▶ Rotate';
 addEventListener('DOMContentLoaded', () => {
 tick(); setInterval(tick, 1000);
 initGlobe(); loadStocks(true); loadCrypto(); loadDisasters();
-loadNews().then(loadConflictGeo);
+loadNews().then(() => { loadConflictGeo(); loadConflictBrief(); });
 setInterval(loadCrypto, 60000); setInterval(() => { loadStocks(); updateGlobe(); }, 60000);
-setInterval(() => loadNews().then(loadConflictGeo), 10 * 60000); setInterval(loadDisasters, 10 * 60000);
+setInterval(() => loadNews().then(() => { loadConflictGeo(); loadConflictBrief(); }), 10 * 60000); setInterval(loadDisasters, 10 * 60000);
 });
