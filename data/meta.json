@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-27T00:33:58.680Z",
+ "updated": "2026-11-27T13:49:40.970Z",
  "sources": {
   "news": {
    "ok": false,
@@ -8,28 +8,28 @@
   },
   "points": {
    "ok": false,
-   "error": "non-JSON: Content-type: text/html; charset=utf-8\nServer: GDELT API Server 2.0\nAccess-Control-Allow-Origin: *\nTiming-Allow-Origin: ",
+   "error": "fetch failed",
    "t": null
   },
   "gdacs": {
    "ok": true,
    "n": 80,
-   "t": "2026-11-27T00:33:58.680Z"
+   "t": "2026-11-27T13:49:40.970Z"
   },
   "quakes": {
    "ok": true,
-   "n": 85,
-   "t": "2026-11-27T00:33:58.680Z"
+   "n": 80,
+   "t": "2026-11-27T13:49:40.970Z"
   },
   "eonet": {
    "ok": true,
-   "n": 11,
-   "t": "2026-11-27T00:33:58.680Z"
+   "n": 3,
+   "t": "2026-11-27T13:49:40.970Z"
   },
   "conflict": {
    "ok": true,
-   "n": 62,
-   "t": "2026-11-27T00:33:58.680Z"
+   "n": 67,
+   "t": "2026-11-27T13:49:40.970Z"
   }
  }
 }
